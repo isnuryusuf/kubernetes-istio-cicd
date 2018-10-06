@@ -8,6 +8,43 @@ Environment:
 
 see install.sh for detail
 
+
+
+
+# Bookinfo Architecture
+The BookInfo sample application deployed is composed of four microservices:
+
+The productpage microservice is the homepage, populated using the details and reviews microservices.
+The details microservice contains the book information.
+The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
+The ratings microservice contains the book rating for a book review.
+The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
+
+Version v1 doesn’t call the ratings service.
+Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
+Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
+The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
+
 ![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png)
+
+
+# Istio Architecture
+Istio intro
+
+The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA (Certificate Authority).
+
+Pilot - Responsible for configuring the Envoy and Mixer at runtime.
+
+Proxy / Envoy - Sidecar proxies per microservice to handle ingress/egress traffic between services in the cluster and from a service to external services. The proxies form a secure microservice mesh providing a rich set of functions like discovery, rich layer-7 routing, circuit breakers, policy enforcement and telemetry recording/reporting functions.
+
+Mixer - Create a portability layer on top of infrastructure backends. Enforce policies such as ACLs, rate limits, quotas, authentication, request tracing and telemetry collection at an infrastructure level.
+
+Citadel / Istio CA - Secures service to service communication over TLS. Providing a key management system to automate key and certificate generation, distribution, rotation, and revocation.
+
+Ingress/Egress - Configure path based routing for inbound and outbound external traffic.
+
+Control Plane API - Underlying Orchestrator such as Kubernetes or Hashicorp Nomad.
+
+The overall architecture is shown below.
 
 ![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/istio-arch1.png)
