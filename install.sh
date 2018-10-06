@@ -416,6 +416,11 @@ done
 
 ####################################################################################################################
 
+#--| Traffic Shaping Microservices Connections
+cd /root/istio-1.0.0
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v1.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
 
 
 
