@@ -394,7 +394,7 @@ done
 # Grafana Dashboard URL
 # http://172.16.0.22:3000/d/1/istio-mesh-dashboard
 
-# productpage App URL
+# Productpage App URL
 # http://172.16.0.22/productpage
 
 # ServiceGraph URL
@@ -408,8 +408,7 @@ done
 
 
 
-
-
+# Troubleshooting Network, test ClusterIP instead of NodePort
 kubectl create deployment nginx --image=nginx
 kubectl create service nodeport nginx --tcp=80:80
 kubectl get svc
