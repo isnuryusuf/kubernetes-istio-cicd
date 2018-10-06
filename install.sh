@@ -64,9 +64,12 @@ mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
   
-# join node to master
+# join Worker node to master
 kubeadm join 172.16.0.22:6443 --token ly4swk.uyxl37ovhi0m7ktt --discovery-token-ca-cert-hash <token-hash>
 kubectl get nodes
+
+# Check core-dns is up and running
+watch -n 2 kubectl get pods --all-namespaces -o wide
   
 # Deploy CNI using weave
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
@@ -75,17 +78,19 @@ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl versio
 watch -n 2 kubectl get pods --all-namespaces -o wide
 kubectl get nodes
   
-# Install ISTIO
+####################################################################################################################
+  
+#--|  Install ISTIO
 cd /root/
 curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
 export PATH="$PATH:/root/istio-1.0.0/bin"
 cd /root/istio-1.0.0
 
-# Configure Istio CRD
+#-| Configure Istio CRD
 # Istio has extended Kubernetes via Custom Resource Definitions (CRD). Deploy the extensions by applying crds.yaml
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 
-# Install Istio with default mutual TLS authentication
+#-| Install Istio with default mutual TLS authentication
 # To Install Istio and enforce mutual TLS authentication by default, use the yaml istio-demo-auth.yaml:
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
 # This will deploy Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA (Certificate Authority). 
@@ -95,7 +100,7 @@ kubectl apply -f install/kubernetes/istio-demo-auth.yaml
 kubectl get pods -n istio-system
 kubectl get svc -n istio-system
 
-# The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA 
+#-| The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA 
 # (Certificate Authority).
 # * Pilot - Responsible for configuring the Envoy and Mixer at runtime.
 # * Proxy / Envoy - Sidecar proxies per microservice to handle ingress/egress traffic between services in the cluster and from a service to external services. The proxies form a secure microservice mesh providing a rich set of functions like discovery, rich layer-7 routing, circuit breakers, policy enforcement and telemetry recording/reporting functions.
@@ -105,7 +110,7 @@ kubectl get svc -n istio-system
 # * Control Plane API - Underlying Orchestrator such as Kubernetes or Hashicorp Nomad.
 # Topologi: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/istio-arch1.png
 
-# Deploy Sample Application
+#-| Deploy Sample Application
 # - To showcase Istio, a BookInfo web application has been created. This sample deploys a simple application composed 
 # - of four separate microservices which will be used to demonstrate various features of the Istio service mesh.
 # - When deploying an application that will be extended via Istio, the Kubernetes YAML definitions are extended via kube-inject. 
@@ -115,9 +120,9 @@ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
-# Expose bookinfo sample app component
+#-| Expose bookinfo sample app component
 # To make the sample BookInfo application and dashboards available to the outside world, 
-# in particular, on Katacoda, deploy the following Yaml
+# change 172.16.0.22 to your master node IP address 
 #------- cut here ------
 bash -c 'cat <<EOF > /root/expose.yaml
 apiVersion: v1
