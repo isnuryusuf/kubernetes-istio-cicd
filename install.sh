@@ -423,6 +423,7 @@ done
 ####################################################################################################################
 
 #--| Traffic Shaping Microservices Connections
+# remove bookinfo from previous installation
 kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl get pods
 
@@ -556,9 +557,9 @@ END_COMMENT
       
 # Within this rule, it also defines that the connections should be over TLS.
 : <<'END_COMMENT'
-#  trafficPolicy:
-#    tls:
-#      mode: ISTIO_MUTUAL
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
 END_COMMENT
       
 # Without the DestinationRule, Istio cannot route the internal traffic.
@@ -623,12 +624,92 @@ curl http://httpbin.org/headers -i
 ####################################################################################################################
 # Deploying Canary Releases           
 ####################################################################################################################
+#--| Step 1 - Remove bookinfo from previous installation
+kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
+#--| Step 2 - Deploy V1
+# The default deployment will load balance requests for the reviews across the different versions meaning on each request you may get a different result.
+# As described in our traffic shaping scenario, Virtual Services are used to control the traffic flow within the system. 
+# Deploy the Virtual Services to force all traffic to V1 of our system.
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+# When you visit the Product Page you will only see the reviews coming from our V1 service.
+# The next steps will rollout V2 of our rating service as a canary release.
+
+#--| Step 3 - Access V2 Internally
+# The key to successful canary releases is being able to deploy components of the system into production, 
+# test everything is successful for a small sample before rolling out to a larger user base. If everything is happy, 
+# it can be deployed to 100% of the user-base.
+# Virtual Services provide Layer 7 load balancing and traffic routing. Layer 7 means it's possible to route traffic based 
+# on aspects of HTTP request, such as host headers, user agents or cookies.
+# By having Layer 7 routing, we can provide a specific section of our users with a different response to the request of our user base.
+# For example, if a user as a particular cookie, they could be sent to the V2 version. Using this routing is ideal for 
+# allowing internal employees access before it goes live.
+# The following Virtual Service implements this pattern. If the user is logged in as jason then they will be direct to V2. 
+# As this VirtualService comes all the flow for the reviews host, at the end we indicate that everyone else who didn't match will go to the V1.
+cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+
+# When listing services you should only see the current version available.
+kubectl get virtualservice
+kubectl describe virtualservice reviews
+# When you visit the Product Page you will only see the reviews coming from our V1 service. 
+# If you log in at jason you will start to see the V2 service.
+
+#--| Step 4 - 10% Public Traffic to V2
+# Hopefully V2 is working successfully for Jason meaning it can be rolled out to production.
+# Instead of sending 100% of traffic to V2, we want to slowly roll out the service. 
+# To start with, only 10% of traffic should go to V2.
+# With Virtual Services, this can be done by defining two route destinations. 
+# Each of these destinations can have the desired weight.
+cat samples/bookinfo/networking/virtual-service-reviews-90-10.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-90-10.yaml
+# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. 
+# The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
+
+#--| Step 5 - 20%
+# As confidence grows in v2, changing the Virtual Service weights will start sending more traffic to the latest version.
+cat samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
+# Within the Katacoda Observing Microservices with Istio course, we explain how to use the Istio Dashboards, 
+# Metrics and Tracing to identify when systems are working and the traffic distribution. 
+# These would be critical in understanding how our systems are operating and if the next version is working as expected.
+# If you are interested in seeing the data you can view the Grafana dashboards here.
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+# Each service has it's own version available, allowing you to inspect Reviews Service v1 or Reviews Service v2
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v1&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+
+#--| Step 6 - Auto Scale
+# During this canary deployment, our system is shifting load from our previous version to the desired version. As a result, the older version is receiving less traffic while our new version is increasing.
+# Running both v1 and v2 at full capacity might not be possible given system resources available. Ideally, we'd like Kubernetes to scale up/down our Pods as the traffic changes.
+# This is possible with Kubernetes by using the Horizontal Pod Autoscaler. Based on CPU usage of the pods we can change the number of Pods running automatically.
+# The auto scale is defined based on the deployments running. This can be found with 
+# The auto scale is defined based on the deployments running. This can be found with kubectl get deployment
+# The deployments show that both v1 and v2 are running. We can tell Kubernetes to autoscale these components with the following commands:
+kubectl autoscale deployment reviews-v1 --cpu-percent=50 --min=1 --max=10
+kubectl autoscale deployment reviews-v2 --cpu-percent=50 --min=1 --max=10
+# If the Pod CPU exceeds 50% then an additional Pod will be started, up to a maximum of 10.
+#View all auto-scaling definitions with 
+kubectl get hpa
+
+#--| Step 7 - All Traffic to V2
+# Once happy the Virtual Service can be updated to direct all the traffic to the v2 version.
+cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# This is deployed with the command:
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
+# The Grafana dashboards should also indicate that all traffic is going to Reviews Service v2.
+#https://2886795309-3000-ollie02.environments.katacoda.com/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+#https://2886795309-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
+
+
+
+
+
 : <<'END_COMMENT'
 END_COMMENT
-
-
-
-
 
 # Troubleshooting Network, test ClusterIP instead of NodePort
 kubectl create deployment nginx --image=nginx
