@@ -1,8 +1,14 @@
+##################################################################################
 # Environment:
 # CentOS Linux release 7.5.1804 (Core) minimal installation
 # 1 master node (4vCpu, 4Gb RAM, 20GB Disk, Nat or Wan or Bridge Network) 
 # 1 Worker Node or More (2vCpu, 2Gb RAM, 20GB Disk, Nat or Wan or Bridge Network)
 # 
+# /etc/hosts file
+# 172.16.0.20	worker1.variasimx.com (Kubernetes Node1)
+# 172.16.0.21	worker2.variasimx.com (Kubernetes Node1)
+# 172.16.0.22	master.variasimx.com (Kubernetes Master, please take not this IP)
+##################################################################################
 
 # Prepare Operating System
 setenforce 0
@@ -26,11 +32,14 @@ systemctl enable docker
 systemctl enable kubelet
 
 # Enable BR filter
+modprobe br_netfilter
 bash -c 'cat <<EOF > /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF'
 sysctl -p
+echo 1 >  /proc/sys/net/bridge/bridge-nf-call-iptables
+echo 1 >  /proc/sys/net/bridge/bridge-nf-call-ip6tables
 
 # Disable swap
 swapoff -a
@@ -38,6 +47,8 @@ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
 # Configuration of the Kubernetes Master (172.16.0.22 my master IP, 192.168.0.0/16 is default istio Network)
 kubeadm init --apiserver-advertise-address=172.16.0.22  --pod-network-cidr=192.168.0.0/16
+# Take note on --discovery-token-ca-cert-hash
+kubectl cluster-info
 
 # COpy credential to home dir and set permission
 mkdir -p $HOME/.kube
@@ -60,22 +71,40 @@ cd /root/
 curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
 export PATH="$PATH:/root/istio-1.0.0/bin"
 cd /root/istio-1.0.0
+
+# Configure Istio CRD
+# Istio has extended Kubernetes via Custom Resource Definitions (CRD). Deploy the extensions by applying crds.yaml
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
+
+# Install Istio with default mutual TLS authentication
+# To Install Istio and enforce mutual TLS authentication by default, use the yaml istio-demo-auth.yaml:
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+# This will deploy Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA (Certificate Authority). 
+# These are explained in the next step.
+
+# Check Status, All the services are deployed as Pods.
 kubectl get pods -n istio-system
 kubectl get svc -n istio-system
 
+# The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA 
+# (Certificate Authority).
+# * Pilot - Responsible for configuring the Envoy and Mixer at runtime.
+# * Proxy / Envoy - Sidecar proxies per microservice to handle ingress/egress traffic between services in the cluster and from a service to external services. The proxies form a secure microservice mesh providing a rich set of functions like discovery, rich layer-7 routing, circuit breakers, policy enforcement and telemetry recording/reporting functions.
+# * Mixer - Create a portability layer on top of infrastructure backends. Enforce policies such as ACLs, rate limits, quotas, authentication, request tracing and telemetry collection at an infrastructure level.
+# * Citadel / Istio CA - Secures service to service communication over TLS. Providing a key management system to automate key and certificate generation, distribution, rotation, and revocation.
+# * Ingress/Egress - Configure path based routing for inbound and outbound external traffic.
+# * Control Plane API - Underlying Orchestrator such as Kubernetes or Hashicorp Nomad.
+# Topologi: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/istio-arch1.png
 
-
-
+# Deploy Sample Application
+# - To showcase Istio, a BookInfo web application has been created. This sample deploys a simple application composed 
+# - of four separate microservices which will be used to demonstrate various features of the Istio service mesh.
+# - When deploying an application that will be extended via Istio, the Kubernetes YAML definitions are extended via kube-inject. 
+# - This will configure the services proxy sidecar (Envoy), Mixers, Certificates and Init Containers.
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
-
-
-
-
 
   
 kubectl create deployment nginx --image=nginx
@@ -92,6 +121,8 @@ curl 10.106.161.83
 
 
 # Expose bookinfo sample app component
+# To make the sample BookInfo application and dashboards available to the outside world, 
+# in particular, on Katacoda, deploy the following Yaml
 #------- cut here ------
 bash -c 'cat <<EOF > /root/expose.yaml
 apiVersion: v1
