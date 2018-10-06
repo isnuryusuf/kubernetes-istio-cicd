@@ -118,4 +118,9 @@ The overall architecture is shown below.
 
 # Based on https://istio.io/docs/tasks/traffic-management/circuit-breaking/
 ####################################################################################################################
+
+####################################################################################################################
+# Identifying Slow Services with Distributed Tracing       
+# In this scenario you will learn how to use OpenTracing, Jaeger and Istio to identify slow Microservices.
+####################################################################################################################
 ```
