@@ -728,7 +728,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https:
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
 
-cat <<EOF >> httpbinRule.yaml
+cat <<EOF >> /root/httpbinRule.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -767,7 +767,67 @@ spec:
 # Deploy the application with 
 kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml)
 
+#--| Step 2 - Configure Circuit Breaker
+# To access the HTTPBin service, a client is required. The sleep sample application doesn't execute any workload, instead, 
+# it allows users to attach and execute bash commands interactively. The container will allow us to test and debug our system.
 
+# Deploy a sleep container with 
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml)
+# This gives us access to the Istio deployed applications and internal control plane.
+
+# Attach a Bash prompt to the container with 
+kubectl exec -it $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) bash
+# It's now possible to send cURL commands to other components running within our system.
+curl http://httpbin:8000/get;
+# The response should be a 200 OK message indicating everything is working as expected. Exit the container to continue.
+
+#--| Step 3 - View Request
+# Within Istio, the traffic and networking approaches can be updated and modified based on requirements.
+# As discussed in the Connecting and Controlling Istio scenarios, Virtual Services direct the traffic flow 
+# to which version of the component(s) should handle the request. Destination Rules configure the network and load balancing 
+# of the traffic. With a Destination Rule it's possible to implement a Circuit Breaker to restrict the number of concurrent requests to a service.
+
+# The Destination Rule below has two Circuit Breakers that can trigger. 
+# The first is a Connection Pool that limits the maximum TCP connections to 1, and a maximum of 1 HTTP request per connection.
+
+# The second is an Outlier Detection that automatically removes failing nodes if they have consecutively returned 500 error messages for more than a period of time.
+kubectl apply -f /root/httpbinRule.yaml
+cat /root/httpbinRule.yaml
+
+# After this has been deployed, you should find the application still functions as before.
+kubectl exec -it $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) bash
+curl http://httpbin:8000/get;
+# Exit the container to continue. In the next step, we'll increase the load and watch how Istio and Envoy Proxy trips the circuit breaker
+
+#--| Step 4 - Tripping Circuit Breaker
+# With the circuit breaker in place, we should be able to trigger errors via a load test.
+# Fortio Φορτίο is a load testing tool created for Istio. Fortio runs at a specified query per second (qps) 
+# and records an histogram of execution time and calculates percentiles (e.g. p99 ie the response time such as 99% 
+# of the requests take less than that number (in seconds, SI unit)). It can run for a set duration, for a fixed number of calls, 
+# or until interrupted (at a constant target QPS, or max speed/load per connection/thread).
+
+# Start Fortio with 
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/sample-client/fortio-deploy.yaml); FORTIO_POD=$(kubectl get pod | grep fortio | awk '{ print $1 }');
+# The first command generates two concurrent connections (-c 2) and sends 20 requests (-n 20). 
+
+# You should start to see some requests being returned as 503, meaning the Circuit Breaker has tripped.
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 2 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+
+# If you increase the concurrent connections, the number of errors will also increase.
+kubectl exec -it $FORTIO_POD  -c fortio /usr/local/bin/fortio -- load -c 3 -qps 0 -n 20 -loglevel Warning http://httpbin:8000/get
+
+# Remember, the circuit breaker is defined to protect the underlying system and fail gracefully.
+# As Envoy implements the Circuit Breaker, the Envoy Proxy is collecting its statistics. 
+# These can be queried via Prometheus/Grafana Dashboards, or via CURL requests.
+
+# For example, the following will highlight the stats for the HTTPBin service.
+kubectl exec -it $FORTIO_POD  -c istio-proxy  -- sh -c 'curl localhost:15000/stats' | grep httpbin | grep pending
+
+# You can see a upstream_rq_pending_overflow value indicating the number of calls so far that have been flagged for circuit breaking.
+# The metric upstream_rq_pending_overflow is from Envoy, more details can be found in at documentation at 
+# https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/circuit_breaking
+# More insight into the Circuit Breaker pattern is discussed at 
+# http://blog.christianposta.com/microservices/01-microservices-patterns-with-envoy-proxy-part-i-circuit-breaking/
 
 
 
