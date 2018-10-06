@@ -90,4 +90,76 @@ spec:
 # In the above example, we are sending all traffic for the Rating service to v1.
 # The VirtualService traffic will be then be processed by the DestinationRule which will load balance based on LEAST_CONN.
 # For our BookInfo application, because we are using a wildcard (*) character for the host and only one route rule, 
-# all traffic from this gateway to the frontend service. This is defined by the combination of our Gateway and Virtual Services.
+# all traffic from this gateway to the frontend service. This is defined by the combination of our Gateway and Virtual Services.\
+
+# When you visit the application, the traffic will be initially processed by our Gateway, 
+# with rules defined by the Virtual Services to explain which Kubernetes Pod should process the request.
+# The application can be accessed at http://<IP-Kubenetes-Master>/productpage
+
+# While a VirtualService configures traffic flows, a DestinationRule defines policies that apply to traffic intended 
+# for a service after routing has occurred.
+# The following rule defines that the load balancer should be using LEAST_CONN, 
+# meaing route the pod with the least active connnections.
+
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: bookinfo-ratings
+spec:
+  host: ratings.prod.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+      
+# The following rule indicates traffic should be load balanced across three different versions based on the Pod labels, v1, v2 and v3.
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reviews
+spec:
+  host: reviews
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  - name: v3
+    labels:
+      version: v3
+      
+# Within this rule, it also defines that the connections should be over TLS.
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+      
+# Without the DestinationRule, Istio cannot route the internal traffic.
+
+
+# Apply default destination rules
+# Before you can use Istio to control the Bookinfo version routing, you need to define the available versions, called subsets, in destination rules.
+cat samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl get destinationrules
+
+# Now when you visit the Product Page the reviews will appear. As three versions have been defined within our Destination Rule
+# By default, it will load balance across all available review services.
+
+# Step 6 - Deploying Virtual Services
+# For the Bookinfo application, we have three different versions of a Reviews service available. The reviews service provides a short review, together with a star rating in the newer versions.
+# By default, Istio and Kubernetes will load balance the requests across all the available services. We can use a Virtual Service to control our traffic and force it to only be processed by V1.
+cat samples/bookinfo/networking/virtual-service-all-v1.yaml
+# The file defines the Virtual Services for all the application. For every application, a host is defined (such as productpage), which is a DNS entry of how other applications will communicate with the service. Based on requests to this host, the route defines the destination and which Pods should handle the request.
+# This is deployed via 
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+# When you visit the Product Page you will only see the reviews coming from our V1 service.
+
+# List All Routes
+# It's possible to get a list of all the rules applied using 
+kubectl get virtualservices 
+# and 
+kubectl get virtualservices reviews -o yaml
