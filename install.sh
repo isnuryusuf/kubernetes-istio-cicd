@@ -77,9 +77,12 @@ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl versio
 # make sure core-dns is up and running
 watch -n 2 kubectl get pods --all-namespaces -o wide
 kubectl get nodes
+
   
 ####################################################################################################################
-  
+# Get Started with Istio and Kubernetes
+####################################################################################################################
+
 #--|  Install ISTIO
 cd /root/
 curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
@@ -457,20 +460,22 @@ kubectl get pods
 kubectl get svc --all-namespaces | grep istio-ingressgateway
 
 # An example of extending the gateway is this:
-#apiVersion: networking.istio.io/v1alpha3
-#kind: Gateway
-#metadata:
-#  name: bookinfo-gateway
-#spec:
-#  selector:
-#    istio: ingressgateway # use istio default controller
-#  servers:
-#  - port:
-#      number: 80
-#      name: http
-#      protocol: HTTP
-#    hosts:
-#    - "*"
+: <<'END_COMMENT'
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: bookinfo-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+END_COMMENT
 
 # Because we are using a wildcard (*) character for the host and only one route rule, all traffic from this gateway 
 # to the frontend service (as defined in the VirtualService)
@@ -484,20 +489,20 @@ kubectl get gateway
 
 #-| Step 4 - Virtual Services
 # A VirtualService defines a set of traffic routing rules to apply when a host is addressed. https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService
-#---
-#apiVersion: networking.istio.io/v1alpha3
-#kind: VirtualService
-#metadata:
-#  name: ratings
-#spec:
-#  hosts:
-#  - ratings
-#  http:
-#  - route:
-#    - destination:
-#        host: ratings
-#        subset: v1
-#---
+: <<'END_COMMENT'
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings
+spec:
+  hosts:
+  - ratings
+  http:
+  - route:
+    - destination:
+        host: ratings
+        subset: v1
+END_COMMENT
 
 # In the above example, we are sending all traffic for the Rating service to v1.
 # The VirtualService traffic will be then be processed by the DestinationRule which will load balance based on LEAST_CONN.
@@ -513,43 +518,48 @@ cat samples/bookinfo/networking/bookinfo-gateway.yaml
 # for a service after routing has occurred.
 # The following rule defines that the load balancer should be using LEAST_CONN, 
 # meaing route the pod with the least active connnections.
-#---
-#apiVersion: networking.istio.io/v1alpha3
-#kind: DestinationRule
-#metadata:
-#  name: bookinfo-ratings
-#spec:
-#  host: ratings.prod.svc.cluster.local
-#  trafficPolicy:
-#    loadBalancer:
-#      simple: LEAST_CONN
-#---
+
+: <<'END_COMMENT'
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: bookinfo-ratings
+spec:
+  host: ratings.prod.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+END_COMMENT
 
 # The following rule indicates traffic should be load balanced across three different versions based on the Pod labels, v1, v2 and v3.
-#apiVersion: networking.istio.io/v1alpha3
-#kind: DestinationRule
-#metadata:
-#  name: reviews
-#spec:
-#  host: reviews
-#  trafficPolicy:
-#    tls:
-#      mode: ISTIO_MUTUAL
-#  subsets:
-#  - name: v1
-#    labels:
-#      version: v1
-#  - name: v2
-#    labels:
-#      version: v2
-#  - name: v3
-#    labels:
-#      version: v3
+: <<'END_COMMENT'
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: reviews
+spec:
+  host: reviews
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  - name: v3
+    labels:
+      version: v3
+END_COMMENT
       
 # Within this rule, it also defines that the connections should be over TLS.
+: <<'END_COMMENT'
 #  trafficPolicy:
 #    tls:
 #      mode: ISTIO_MUTUAL
+END_COMMENT
       
 # Without the DestinationRule, Istio cannot route the internal traffic.
 
@@ -611,8 +621,10 @@ curl http://httpbin.org/headers -i
 
 
 ####################################################################################################################
-# xxxx           
+# Deploying Canary Releases           
 ####################################################################################################################
+: <<'END_COMMENT'
+END_COMMENT
 
 
 
