@@ -106,108 +106,6 @@ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
-# Bookinfo Architecture
-# The BookInfo sample application deployed is composed of four microservices:
-# * The productpage microservice is the homepage, populated using the details and reviews microservices.
-# * The details microservice contains the book information.
-# * The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
-# * The ratings microservice contains the book rating for a book review.
-
-# The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
-# * Version v1 doesn’t call the ratings service.
-# * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
-# * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
-# * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
-# Topology: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/bookinfo-arch.png
-# The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
-
-#--| Control Routing
-#One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
-# there is a requirement for more advanced service-to-service communication control.
-
-#-| User Based Testing / Request Routing
-# One aspect of traffic management is controlling traffic routing based on the HTTP request, such as user agent strings, IP address or cookies.
-# The example below will send all traffic for the user "jason" to the reviews:v2, meaning they'll only see the black stars.
-cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
-# Visit the product page http://172.16.0.22/productpage and signin as a user jason (password jason)
-
-#--| Traffic Shaping for Canary Releases
-# The ability to split traffic for testing and rolling out changes is important. 
-# This allows for A/B variation testing or deploying canary releases.
-# The rule below ensures that 50% of the traffic goes to reviews:v1 (no stars), or reviews:v3 (red stars).
-cat samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
-# Logout of user Jason otherwise the above configuration will take priority
-# Note: The weighting is not round robin, multiple requests may go to the same service.
-
-#--| New Releases
-# Given the above approach, if the canary release were successful then we'd want to move 100% of the traffic to reviews:v3.
-cat samples/bookinfo/networking/virtual-service-reviews-v3.yaml
-#This can be done by updating the route with new weighting and rules.
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml
-
-#--| List All Routes
-# It's possible to get a list of all the rules applied using 
-istioctl get virtualservices 
-#and 
-istioctl get virtualservices -o yam
-
-####################################################################################################################
-#--| Access Metrics
-# With Istio's insight into how applications communicate, 
-# it can generate profound insights into how applications are working and performance metrics.
-
-#-| Generate Load
-#To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
-while true; do
-  curl -s http://172.16.0.22/productpage/productpage > /dev/null
-  echo -n .;
-  sleep 0.2
-done
-# Check metric on browser 
-
-#--| Access Dashboards
-# With the application responding to traffic the graphs will start highlighting what's happening under the covers.
-
-#-| Grafana
-# The first is the Istio Grafana Dashboard. The dashboard returns the total number of requests currently being processed, 
-# along with the number of errors and the response time of each call.
-# Grafana Dashboard
-# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
-# As Istio is managing the entire service-to-service communicate, the dashboard will highlight the aggregated totals 
-# and the breakdown on an individual service level.
-
-#-| Jaeger
-# Jaeger provides tracing information for each HTTP request. 
-# It shows which calls are made and where the time was spent within each request.
-# Jeager UI
-# http://172.16.0.22:16686/
-
-Click on a span to view the details on an individual request and the HTTP calls made. This is an excellent way to identify issues and potential performance bottlenecks.
-
-Service Graph
-As a system grows, it can be hard to visualise the dependencies between services. The Service Graph will draw a dependency tree of how the system connects.
-
-https://2886795299-8088-ollie02.environments.katacoda.com/dotviz
-
-Before continuing, stop the traffic process with
-
-
-  
-kubectl create deployment nginx --image=nginx
-kubectl create service nodeport nginx --tcp=80:80
-kubectl get svc
-watch -n 2 kubectl get pods --all-namespaces -o wide
-curl worker1.variasimx.com:31750
-kubectl delete service nginx
-curl worker1.variasimx.com:31750
-kubectl get svc
-kubectl create service clusterip  nginx --tcp=80:80
-kubectl get svc
-curl 10.106.161.83
-
-
 # Expose bookinfo sample app component
 # To make the sample BookInfo application and dashboards available to the outside world, 
 # in particular, on Katacoda, deploy the following Yaml
@@ -358,13 +256,102 @@ spec:
 EOF'
 #------- cut here ------
 
+#--| Bookinfo Architecture
+# The BookInfo sample application deployed is composed of four microservices:
+# * The productpage microservice is the homepage, populated using the details and reviews microservices.
+# * The details microservice contains the book information.
+# * The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
+# * The ratings microservice contains the book rating for a book review.
+
+# The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
+# * Version v1 doesn’t call the ratings service.
+# * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
+# * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
+# * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
+# Topology: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/bookinfo-arch.png
+# The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
+
+#--| Control Routing
+#One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
+# there is a requirement for more advanced service-to-service communication control.
+
+#-| User Based Testing / Request Routing
+# One aspect of traffic management is controlling traffic routing based on the HTTP request, such as user agent strings, IP address or cookies.
+# The example below will send all traffic for the user "jason" to the reviews:v2, meaning they'll only see the black stars.
+cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+# Visit the product page http://172.16.0.22/productpage and signin as a user jason (password jason)
+
+#--| Traffic Shaping for Canary Releases
+# The ability to split traffic for testing and rolling out changes is important. 
+# This allows for A/B variation testing or deploying canary releases.
+# The rule below ensures that 50% of the traffic goes to reviews:v1 (no stars), or reviews:v3 (red stars).
+cat samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+# Logout of user Jason otherwise the above configuration will take priority
+# Note: The weighting is not round robin, multiple requests may go to the same service.
+
+#--| New Releases
+# Given the above approach, if the canary release were successful then we'd want to move 100% of the traffic to reviews:v3.
+cat samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+#This can be done by updating the route with new weighting and rules.
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+
+#--| List All Routes
+# It's possible to get a list of all the rules applied using 
+istioctl get virtualservices 
+#and 
+istioctl get virtualservices -o yam
+
+####################################################################################################################
+#--| Access Metrics
+# With Istio's insight into how applications communicate, 
+# it can generate profound insights into how applications are working and performance metrics.
+
+#-| Generate Load
+# To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
+while true; do
+  curl -s http://172.16.0.22/productpage/productpage > /dev/null
+  echo -n .;
+  sleep 0.2
+done
+# Check metric on browser 
+
+#--| Access Dashboards
+# With the application responding to traffic the graphs will start highlighting what's happening under the covers.
+
+#-| Grafana
+# The first is the Istio Grafana Dashboard. The dashboard returns the total number of requests currently being processed, 
+# along with the number of errors and the response time of each call.
+# Grafana Dashboard
+# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# As Istio is managing the entire service-to-service communicate, the dashboard will highlight the aggregated totals 
+# and the breakdown on an individual service level.
+
+#-| Jaeger
+# Jaeger provides tracing information for each HTTP request. 
+# It shows which calls are made and where the time was spent within each request.
+# Jeager UI
+# http://172.16.0.22:16686/
+# Click on a span to view the details on an individual request and the HTTP calls made. 
+# This is an excellent way to identify issues and potential performance bottlenecks.
+
+#-| Service Graph
+# As a system grows, it can be hard to visualise the dependencies between services. 
+# The Service Graph will draw a dependency tree of how the system connects.
+# ServiceGraph
+# http://172.16.0.22:8088/dotviz
+
+# Before continuing, stop the traffic (stop generate load) process with ctrl + c
+  
+
 # Grafana Dashboard
 # http://172.16.0.22:3000/d/1/istio-mesh-dashboard
 
 # productpage App URL
 # http://172.16.0.22/productpage
 
-# 
+# ServiceGraph
 # http://172.16.0.22:8088/dotviz
 
 # Jeager UI
@@ -373,3 +360,15 @@ EOF'
 # Weave Scope
 # http://172.16.0.22:4040
 
+
+kubectl create deployment nginx --image=nginx
+kubectl create service nodeport nginx --tcp=80:80
+kubectl get svc
+watch -n 2 kubectl get pods --all-namespaces -o wide
+curl worker1.variasimx.com:31750
+kubectl delete service nginx
+curl worker1.variasimx.com:31750
+kubectl get svc
+kubectl create service clusterip  nginx --tcp=80:80
+kubectl get svc
+curl 10.106.161.83
