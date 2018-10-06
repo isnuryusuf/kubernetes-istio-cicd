@@ -53,3 +53,69 @@ The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egres
 The overall architecture is shown below.
 
 ![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/istio-arch1.png)
+
+
+```
+# LAB-LAB_LAB~LAB
+####################################################################################################################
+# Get Started with Istio and Kubernetes
+# In this scenario, you will learn how to deploy Istio Service Mesh to Kubernetes. 
+# Istio is an open platform that provides a uniform way to connect, manage, and secure microservices. 
+# Istio supports managing traffic flows between microservices, enforcing access policies, and aggregating telemetry-
+# data, all without requiring changes to the microservice code
+
+# The scenario uses the sample BookInfo application. The application has no dependencies on Istio and demonstrates-
+# how any application could build upon Istio without modifications.
+####################################################################################################################
+
+####################################################################################################################
+# Traffic Shaping Microservices Connections
+# In this scenario you will learn how to use Istio to control and manage traffic within your infrastructure.
+# You will learn how to use the following Istio objects:
+#* Ingress and Gateway
+#* Virtual Service
+#* Destination Rule
+#* Egress and Service Entry
+####################################################################################################################
+
+####################################################################################################################
+# Deploying Canary Releases
+# In this scenario, you will learn how to take apply Traffic Shaping techniques discussed in the previous scenario. 
+# By apply Traffic Management, you will be able to control who can access versions of your application making it-
+# possible to perform canary releases with Istio and Kubernetes.
+
+# "Canary release is a technique to reduce the risk of introducing a new software version in production by slowly-
+# rolling out the change to a small subset of users before rolling it out to the entire infrastructure and making-
+# it available to everybody." Martin Flower
+####################################################################################################################
+
+####################################################################################################################
+# Simulating Failures Between Microservices  
+# Distributed systems are difficult to test. It can be time-consuming to reproduce the errors and situations when 
+# it's deep within the system. Based on the traffic management capabilities, it's possible for Istio to inject faults -
+# and simulate application errors or timeouts.
+# In this scenario, you will learn how to cause delays or failures for certain sections of the traffic to allow you to -
+# test how the rest of the system handles problems.
+# Based on https://istio.io/docs/tasks/traffic-management/fault-injection/
+####################################################################################################################
+
+####################################################################################################################
+# Handling Timeouts Between Microservices
+# In this scenario, you will learn how Istio can help you gracefully handle timeouts. 
+# Systems can cause timeouts for a number of reasons, sometimes this can cause 30-60 second delays in responses. 
+# As a result, the workload is queued and has knock-on effects for the rest of the application.
+# By implementing a timeout, services will always return within a known time, either as a success or an error.
+# Based on https://istio.io/docs/tasks/traffic-management/request-timeouts/
+####################################################################################################################
+
+####################################################################################################################
+# Handling Failures With Circuit Breakers
+# In this scenario, you will learn how to use Circuit Breakers within Envoy Proxy to cause applications 
+# to fail quick based on certain metrics within the system, such as active HTTP connections.
+
+# Circuit breaking is a critical component of distributed systems. 
+# It’s nearly always better to fail quickly and apply back pressure downstream as soon as possible." Envoy Proxy
+
+# Based on https://istio.io/docs/tasks/traffic-management/circuit-breaking/
+####################################################################################################################
+```
