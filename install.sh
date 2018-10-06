@@ -4,7 +4,7 @@
 # 1 Worker Node or More (2vCpu, 2Gb RAM, 20GB Disk, Nat or Wan or Bridge Network)
 # 
 
-# Prepae Operating System
+# Prepare Operating System
 setenforce 0
 sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
 systemctl disable firewalld
@@ -75,8 +75,7 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
 
 
-# Expose bookinfo sample app
-vim /root/expose.yaml
+
 
   
 kubectl create deployment nginx --image=nginx
@@ -90,4 +89,168 @@ kubectl get svc
 kubectl create service clusterip  nginx --tcp=80:80
 kubectl get svc
 curl 10.106.161.83
+
+
+# Expose bookinfo sample app component
+#------- cut here ------
+bash -c 'cat <<EOF > /root/expose.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: servicegraph
+    chart: servicegraph-0.1.0
+    heritage: Tiller
+    release: RELEASE-NAME
+  name: katacoda-servicegraph
+  namespace: istio-system
+spec:
+  ports:
+  - name: http
+    port: 8088
+    protocol: TCP
+    targetPort: 8088
+  selector:
+    app: servicegraph
+  type: ClusterIP
+  externalIPs:
+    - 172.16.0.22
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: grafana
+    chart: grafana-0.1.0
+    heritage: Tiller
+    release: RELEASE-NAME
+  name: katacoda-grafana
+  namespace: istio-system
+spec:
+  ports:
+  - name: http
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: grafana
+  sessionAffinity: None
+  type: ClusterIP
+  externalIPs:
+    - 172.16.0.22
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: jaeger
+    chart: tracing-0.1.0
+    heritage: Tiller
+    jaeger-infra: jaeger-service
+    release: RELEASE-NAME
+  name: katacoda-jaeger-query
+  namespace: istio-system
+spec:
+  ports:
+  - name: query-http
+    port: 16686
+    protocol: TCP
+    targetPort: 16686
+  selector:
+    app: jaeger
+  type: ClusterIP
+  externalIPs:
+    - 172.16.0.22
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: prometheus
+  name: katacoda-prometheus
+  namespace: istio-system
+spec:
+  ports:
+  - name: http-prometheus
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: prometheus
+  type: ClusterIP
+  externalIPs:
+    - 172.16.0.22
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: istio-ingressgateway
+    chart: gateways-1.0.0
+    heritage: Tiller
+    istio: ingressgateway
+    release: RELEASE-NAME
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: http2
+    nodePort: 31380
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  - name: https
+    nodePort: 31390
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  - name: tcp
+    nodePort: 31400
+    port: 31400
+    protocol: TCP
+    targetPort: 31400
+  - name: tcp-pilot-grpc-tls
+    nodePort: 32565
+    port: 15011
+    protocol: TCP
+    targetPort: 15011
+  - name: tcp-citadel-grpc-tls
+    nodePort: 32352
+    port: 8060
+    protocol: TCP
+    targetPort: 8060
+  - name: http2-prometheus
+    nodePort: 31930
+    port: 15030
+    protocol: TCP
+    targetPort: 15030
+  - name: http2-grafana
+    nodePort: 31748
+    port: 15031
+    protocol: TCP
+    targetPort: 15031
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  type: LoadBalancer
+  externalIPs:
+  - 172.16.0.22
+EOF'
+#------- cut here ------
+
+# Grafana Dashboard
+# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+
+# Booksample App URL
+# http://172.16.0.22/productpage
+
+# 
+# http://172.16.0.22:8088/dotviz
+
+# Jeager UI
+# http://172.16.0.22:16686/
+
+# Weave Scope
+# http://172.16.0.22:4040
 
