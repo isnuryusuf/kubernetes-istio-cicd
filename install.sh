@@ -1,8 +1,8 @@
 ####################################################################################################################
 # Environment:
 # CentOS Linux release 7.5.1804 (Core) minimal installation
-# 1 master node (4vCpu, 4Gb RAM, 20GB Disk, Nat or Wan or Bridge Network) 
-# 1 Worker Node or More (2vCpu, 2Gb RAM, 20GB Disk, Nat or Wan or Bridge Network)
+# 1 Kubernetes master node (4vCpu, 4Gb RAM, 20GB Disk, Nat or Wan or Bridge Network) 
+# 1 Kubernetes Worker Node or More (2vCpu, 2Gb RAM, 20GB Disk, Nat or Wan or Bridge Network)
 # 
 # /etc/hosts file
 # 172.16.0.20	worker1.variasimx.com (Kubernetes Node1)
@@ -701,6 +701,74 @@ kubectl apply -f /root/istio-1.0.0/virtualServiceReviews.yaml
 # The traceability can help identify the requests to the system, the dependent services and the system calls made.
 # With the timeout in place, it's possible to identify the system calls producing an error.
 # Visit the Jaeger dashboard at http://172.16.0.22:16686/
+
+
+####################################################################################################################
+# Handling Failures With Circuit Breakers
+# In this scenario, you will learn how to use Circuit Breakers within Envoy Proxy to cause applications 
+# to fail quick based on certain metrics within the system, such as active HTTP connections.
+
+# Circuit breaking is a critical component of distributed systems. 
+# It’s nearly always better to fail quickly and apply back pressure downstream as soon as possible." Envoy Proxy
+
+# Based on https://istio.io/docs/tasks/traffic-management/circuit-breaking/
+####################################################################################################################
+
+export PATH="$PATH:/root/istio-1.0.0/bin";
+cd /root/istio-1.0.0
+kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
+kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+kubectl apply -f /root/expose.yaml
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl delete -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v1.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
+
+cat <<EOF >> httpbinRule.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: httpbin
+spec:
+  host: httpbin
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      consecutiveErrors: 1
+      interval: 1s
+      baseEjectionTime: 3m
+      maxEjectionPercent: 100
+    tls:
+      mode: ISTIO_MUTUAL
+
+#--| Step 1 - Deploy HTTPBin Client
+# A Circuit Breaker is a design pattern that allows systems to define limits and restrictions that protect them from -
+# being overloaded. If errors start to happen or too much load for the system to handle is created, the Circuit Breaker -
+# is tripped and requests fail in a known, consistent approach. This allows the calling application to handle the errors gracefully.
+# Without a Circuit Breaker in place, unknown system errors or inconsistencies may appear causing additional problems and unexpected results.
+
+# Within the Istio architecture, Envoy Proxy is used to manage traffic between services. As a result, 
+# all the functionality available within Envoy is exposed via Istio, such as Envoy's Circuit Breaker. The types include:
+#* Cluster maximum connections: The maximum number of connections that Envoy will establish to all hosts in an upstream cluster.
+#* Cluster maximum pending requests: The maximum number of requests that will be queued while waiting for a ready connection pool connection.
+#* Cluster maximum requests: The maximum number of requests that can be outstanding to all hosts in a cluster at any given time.
+#* Cluster maximum active retries: The maximum number of retries that can be outstanding to all hosts in a cluster at any given time.
+
+# In this example, we'll deploy an HTTPBin service. The service echoes the HTTP request as a response, allowing us to identify responses and errors easily.
+# Deploy the application with 
+kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml)
+
+
+
 
 
 
