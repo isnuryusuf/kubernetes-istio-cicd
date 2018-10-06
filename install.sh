@@ -668,6 +668,42 @@ EOF'
 kubectl apply -f /root/istio-1.0.0/ratingDelay.yaml
 # When you visit the product page, you should notice that the page loads significantly slower. This is because the service is blocking the entire page being loaded.
 
+#--| Step 4 - Configure Timeout
+# Instead of the page blocking, the application should fail gracefully and display a message to the user.
+# We can update the Virtual Service for the Reviews service that automatically timeouts after 0.5s.
+
+bash -c 'cat <<EOF > /root/istio-1.0.0/virtualServiceReviews.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings
+spec:
+  hosts:
+  - ratings
+  http:
+  - fault:
+      delay:
+        percent: 100
+        fixedDelay: 5s
+    route:
+    - destination:
+        host: ratings
+        subset: v1
+EOF'
+
+kubectl apply -f /root/istio-1.0.0/virtualServiceReviews.yaml
+# As long as the upstream application can handle timeouts/failures, this improves the developer experience. 
+# Requests to the different components can timeout, unblocking the overall request and delivering a response to the user.
+# when visiting the product page, it should return after 0.5s with a friendly error message about the ratings.
+
+#--| Step 5 - Visit Jaeger Dashboard
+# As discussed in the Observing Microservices with Istio course, Istio has traceability built-in. 
+# The traceability can help identify the requests to the system, the dependent services and the system calls made.
+# With the timeout in place, it's possible to identify the system calls producing an error.
+# Visit the Jaeger dashboard at http://172.16.0.22:16686/
+
+
+
 
 
 : <<'END_COMMENT'
