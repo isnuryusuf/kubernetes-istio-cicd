@@ -563,7 +563,14 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 
 ####################################################################################################################
 # Simulating Failures Between Microservices  
+# Distributed systems are difficult to test. It can be time-consuming to reproduce the errors and situations when 
+# it's deep within the system. Based on the traffic management capabilities, it's possible for Istio to inject faults -
+# and simulate application errors or timeouts.
+# In this scenario, you will learn how to cause delays or failures for certain sections of the traffic to allow you to -
+# test how the rest of the system handles problems.
+# Based on https://istio.io/docs/tasks/traffic-management/fault-injection/
 ####################################################################################################################
+
 #--| Step 1 - Remove bookinfo from previous installation
 !need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 !need review kubectl get pods
@@ -593,6 +600,73 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.
 # As a normal user, when you visit the Product Page of the Bookinfo application, everything should load as expected. 
 # However, if you sign in as jason then you will experience errors from the rating service.
 
+
+####################################################################################################################
+# Handling Timeouts Between Microservices
+# In this scenario, you will learn how Istio can help you gracefully handle timeouts. 
+# Systems can cause timeouts for a number of reasons, sometimes this can cause 30-60 second delays in responses. 
+# As a result, the workload is queued and has knock-on effects for the rest of the application.
+# By implementing a timeout, services will always return within a known time, either as a success or an error.
+# Based on https://istio.io/docs/tasks/traffic-management/request-timeouts/
+####################################################################################################################
+
+#--| Step 1 - Remove bookinfo from previous installation
+!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review kubectl get pods
+#-| Deploy Bookinfo
+# Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
+!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review! kubectl get pods
+
+#--| Step 2 - Bookinfo Reviews v2
+# At the moment, requests are going to different versions of the Reviews version. 
+# Deploy a Virtual Service to force requests to only v2 meaning it will call our Rating service.
+
+bash -c 'cat <<EOF > /root/istio-1.0.0/reviewsV2.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: reviews
+spec:
+  hosts:
+    - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v2
+EOF'
+
+kubectl apply -f /root/istio-1.0.0/reviewsV2.yaml
+# In the next step, we'll introduce a delay without the Rating service and see how the system responds.
+
+#--| Step 3 - Add Rating Delay
+# With Reviews calling the Rating service, we can now introduce a delay. 
+# This will showcase the rating service potentially being under large load, or an internal component having problems.
+# With the delay in place, it's possible to understand how the Reviews service and the platform handles these errors.
+# The Virtual Service below introduces a 5-second delay for all users.
+
+bash -c 'cat <<EOF > /root/istio-1.0.0/ratingDelay.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings
+spec:
+  hosts:
+  - ratings
+  http:
+  - fault:
+      delay:
+        percent: 100
+        fixedDelay: 5s
+    route:
+    - destination:
+        host: ratings
+        subset: v1
+EOF'
+
+kubectl apply -f /root/istio-1.0.0/ratingDelay.yaml
+# When you visit the product page, you should notice that the page loads significantly slower. This is because the service is blocking the entire page being loaded.
 
 
 
