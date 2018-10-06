@@ -8,13 +8,16 @@
 # 172.16.0.20	worker1.variasimx.com (Kubernetes Node1)
 # 172.16.0.21	worker2.variasimx.com (Kubernetes Node1)
 # 172.16.0.22	master.variasimx.com (Kubernetes Master, please take not this IP)
+#
+# To lazy to prepare your environment, you can use: https://www.katacoda.com/courses/istio/deploy-istio-on-kubernetes
 ####################################################################################################################
 
-# Prepare Operating System
+# Prepare Operating System, disabling Selinux and Firewalld
 setenforce 0
 sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
 systemctl disable firewalld
 
+# Enable Kubernetes Repository
 bash -c 'cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
@@ -25,9 +28,9 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF'
 
+# Update Centos and Reboot to apply latest kernel, ater reboot install kubernetes and enable docker & kubelet into startup
 yum repolist; yum -y update; reboot
 yum install kubeadm kubelet kubectl docker -y
-
 systemctl enable docker
 systemctl enable kubelet
 
@@ -41,11 +44,17 @@ sysctl -p
 echo 1 >  /proc/sys/net/bridge/bridge-nf-call-iptables
 echo 1 >  /proc/sys/net/bridge/bridge-nf-call-ip6tables
 
-# Disable swap
+# Disable swap, no need swap on kubernetes
 swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
-# Configuration of the Kubernetes Master (172.16.0.22 my master IP, 192.168.0.0/16 is default istio Network)
+# Configuration of the Kubernetes Master 
+# 172.16.0.22 my master IP, 192.168.0.0/16 is default istio Network, please use default istio network
+# More info related to install istio please go to:
+# https://istio.io/docs/setup/kubernetes/quick-start/
+# https://istio.io/docs/setup/kubernetes/sidecar-injection
+
+# Initializes a Kubernetes master node
 kubeadm init --apiserver-advertise-address=172.16.0.22  --pod-network-cidr=192.168.0.0/16
 # Take note on --discovery-token-ca-cert-hash
 kubectl cluster-info
