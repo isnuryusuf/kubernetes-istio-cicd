@@ -856,6 +856,7 @@ kubectl exec -it $FORTIO_POD  -c istio-proxy  -- sh -c 'curl localhost:15000/sta
 # Identifying Slow Services with Distributed Tracing       
 # In this scenario you will learn how to use OpenTracing, Jaeger and Istio to identify slow Microservices.
 ####################################################################################################################
+
 #!/bin/bash
 cd /root/
 launch.sh>&2
@@ -916,6 +917,26 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yam
 # Apply the configuration with 
 kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay-everyone.yaml
 # Now when you visit the product page, you should have a delay before the page is returned.
+
+#--| Step 4 - Identify Slowdown
+# Using Jaeger, identify the slow calls using the traces. As only 60% of the traffic is affected, 
+# you should see two distinct patterns.
+
+# What happens after 7s?
+#o The rating returns a response
+#o The user is annoyed at the slow response time
+#o A poor user experience is created
+
+#--| Step 5 - Simulate Failure
+# As with adding delays, application failures can be introduced by deploying the following Virtual Service.
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml
+
+# The service will return a 500 HTTP error for 50% of the requests. 
+kubectl get virtualservice ratings -o yaml
+
+# Going to the product page should return instantly, but sometimes have the error "Rating service is currently unavailable"
+# Now, Jaeger will show the requests which have failed, the other and the calls attached. This can aid your debugging process.
+
 
 
 
