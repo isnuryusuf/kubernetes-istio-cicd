@@ -472,8 +472,83 @@ kubectl get svc --all-namespaces | grep istio-ingressgateway
 # Because we are using a wildcard (*) character for the host and only one route rule, all traffic from this gateway 
 # to the frontend service (as defined in the VirtualService)
 
+cat samples/bookinfo/networking/bookinfo-gateway.yaml
+# This file contains two objects. The first object is a Gateway, which will allow us to bind to the "istio-ingressgateway" 
+# that exists in the cluster. The second object, a VirtualService, will be discussed in the next step.
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+# To view all gateways on the system, run 
+kubectl get gateway
 
+#-| Step 4 - Virtual Services
+# A VirtualService defines a set of traffic routing rules to apply when a host is addressed. https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService
+#---
+#apiVersion: networking.istio.io/v1alpha3
+#kind: VirtualService
+#metadata:
+#  name: ratings
+#spec:
+#  hosts:
+#  - ratings
+#  http:
+#  - route:
+#    - destination:
+#        host: ratings
+#        subset: v1
+#---
 
+# In the above example, we are sending all traffic for the Rating service to v1.
+# The VirtualService traffic will be then be processed by the DestinationRule which will load balance based on LEAST_CONN.
+# For our BookInfo application, because we are using a wildcard (*) character for the host and only one route rule, 
+# all traffic from this gateway to the frontend service. This is defined by the combination of our Gateway and Virtual Services.
+cat samples/bookinfo/networking/bookinfo-gateway.yaml
+# When you visit the application, the traffic will be initially processed by our Gateway, 
+# with rules defined by the Virtual Services to explain which Kubernetes Pod should process the request.
+# The application can be accessed at http://<IP-Kubenetes-Master>/productpage
+
+#-| Step 5 - Destination Rules
+# While a VirtualService configures traffic flows, a DestinationRule defines policies that apply to traffic intended 
+# for a service after routing has occurred.
+# The following rule defines that the load balancer should be using LEAST_CONN, 
+# meaing route the pod with the least active connnections.
+#---
+#apiVersion: networking.istio.io/v1alpha3
+#kind: DestinationRule
+#metadata:
+#  name: bookinfo-ratings
+#spec:
+#  host: ratings.prod.svc.cluster.local
+#  trafficPolicy:
+#    loadBalancer:
+#      simple: LEAST_CONN
+#---
+
+# The following rule indicates traffic should be load balanced across three different versions based on the Pod labels, v1, v2 and v3.
+#apiVersion: networking.istio.io/v1alpha3
+#kind: DestinationRule
+#metadata:
+#  name: reviews
+#spec:
+#  host: reviews
+#  trafficPolicy:
+#    tls:
+#      mode: ISTIO_MUTUAL
+#  subsets:
+#  - name: v1
+#    labels:
+#      version: v1
+#  - name: v2
+#    labels:
+#      version: v2
+#  - name: v3
+#    labels:
+#      version: v3
+      
+# Within this rule, it also defines that the connections should be over TLS.
+#  trafficPolicy:
+#    tls:
+#      mode: ISTIO_MUTUAL
+      
+# Without the DestinationRule, Istio cannot route the internal traffic.
 
 
 
