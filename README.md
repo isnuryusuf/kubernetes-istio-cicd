@@ -8,5 +8,5 @@ Environment:
 
 see install.sh for detail
 
-![alt text](https://lh6.googleusercontent.com/2l4VGkujZ2U_Ujuo55vTz08JBKhMVjNgQqlnX7DZHttDhJs_rKudWsXh6kU4JkwkKZETR7ljN70zAzhb__LqC0CondM_ps3h3viYGqxfvVcIYnFhbahEjXvGEZSmmEOET1oc7dRLhttps://raw.githubusercontent.com/username/projectname/branch/path/to/img.png)
+![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png)
 
