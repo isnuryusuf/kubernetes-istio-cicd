@@ -96,7 +96,7 @@ kubectl apply -f install/kubernetes/istio-demo-auth.yaml
 # This will deploy Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA (Certificate Authority). 
 # These are explained in the next step.
 
-# Check Status, All the services are deployed as Pods.
+#-| Check Status, All the services are deployed as Pods.
 kubectl get pods -n istio-system
 kubectl get svc -n istio-system
 
@@ -110,14 +110,35 @@ kubectl get svc -n istio-system
 # * Control Plane API - Underlying Orchestrator such as Kubernetes or Hashicorp Nomad.
 # Topologi: https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/istio-arch1.png
 
+####################################################################################################################
+
+#--| Bookinfo Architecture
+# The BookInfo sample application deployed is composed of four microservices:
+# * The productpage microservice is the homepage, populated using the details and reviews microservices.
+# * The details microservice contains the book information.
+# * The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
+# * The ratings microservice contains the book rating for a book review.
+
+#-| The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
+# * Version v1 doesn’t call the ratings service.
+# * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
+# * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
+# * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
+# Topology: https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png
+# The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
+
 #-| Deploy Sample Application
-# - To showcase Istio, a BookInfo web application has been created. This sample deploys a simple application composed 
-# - of four separate microservices which will be used to demonstrate various features of the Istio service mesh.
-# - When deploying an application that will be extended via Istio, the Kubernetes YAML definitions are extended via kube-inject. 
-# - This will configure the services proxy sidecar (Envoy), Mixers, Certificates and Init Containers.
+# To showcase Istio, a BookInfo web application has been created. This sample deploys a simple application composed 
+# of four separate microservices which will be used to demonstrate various features of the Istio service mesh.
+# When deploying an application that will be extended via Istio, the Kubernetes YAML definitions are extended via kube-inject. 
+# This will configure the services proxy sidecar (Envoy), Mixers, Certificates and Init Containers.
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# Deploy Gateway
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
+
+#-| Apply default destination rules
+# Before you can use Istio to control the Bookinfo version routing, you need to define the available versions, called subsets, in destination rules.
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
 #-| Expose bookinfo sample app component
@@ -270,23 +291,8 @@ spec:
 EOF'
 #------- cut here ------
 
-#--| Bookinfo Architecture
-# The BookInfo sample application deployed is composed of four microservices:
-# * The productpage microservice is the homepage, populated using the details and reviews microservices.
-# * The details microservice contains the book information.
-# * The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
-# * The ratings microservice contains the book rating for a book review.
-
-# The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
-# * Version v1 doesn’t call the ratings service.
-# * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
-# * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
-# * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
-# Topology: https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png
-# The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
-
-#--| Control Routing
-#One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
+#-| Control Routing
+# One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
 # there is a requirement for more advanced service-to-service communication control.
 
 #-| User Based Testing / Request Routing
@@ -296,7 +302,7 @@ cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 # Visit the product page http://172.16.0.22/productpage and signin as a user jason (password jason)
 
-#--| Traffic Shaping for Canary Releases
+#-| Traffic Shaping for Canary Releases
 # The ability to split traffic for testing and rolling out changes is important. 
 # This allows for A/B variation testing or deploying canary releases.
 # The rule below ensures that 50% of the traffic goes to reviews:v1 (no stars), or reviews:v3 (red stars).
@@ -305,7 +311,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 # Logout of user Jason otherwise the above configuration will take priority
 # Note: The weighting is not round robin, multiple requests may go to the same service.
 
-#--| New Releases
+#-| New Releases
 # Given the above approach, if the canary release were successful then we'd want to move 100% of the traffic to reviews:v3.
 cat samples/bookinfo/networking/virtual-service-reviews-v3.yaml
 #This can be done by updating the route with new weighting and rules.
@@ -325,12 +331,14 @@ istioctl get virtualservices -o yam
 
 #-| Generate Load
 # To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
+# 172.16.0.22 is your Kubernetes Master node
 while true; do
   curl -s http://172.16.0.22/productpage/productpage > /dev/null
   echo -n .;
   sleep 0.2
 done
 # Check metric on browser 
+# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
 
 #--| Access Dashboards
 # With the application responding to traffic the graphs will start highlighting what's happening under the covers.
