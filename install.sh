@@ -406,6 +406,10 @@ done
 # Weave Scope URL
 # http://172.16.0.22:4040
 
+####################################################################################################################
+
+
+
 
 
 # Troubleshooting Network, test ClusterIP instead of NodePort
