@@ -414,6 +414,9 @@ done
 # Weave Scope URL
 # http://172.16.0.22:4040
 
+
+####################################################################################################################
+# Traffic Shaping Microservices Connections            
 ####################################################################################################################
 
 #--| Traffic Shaping Microservices Connections
@@ -550,12 +553,66 @@ cat samples/bookinfo/networking/bookinfo-gateway.yaml
       
 # Without the DestinationRule, Istio cannot route the internal traffic.
 
+#-| Apply default destination rules
+# Before you can use Istio to control the Bookinfo version routing, you need to define the available versions, called subsets, in destination rules.
+cat samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl get destinationrules
+
+# Now when you visit the Product Page the reviews will appear. As three versions have been defined within our Destination Rule
+# By default, it will load balance across all available review services.
+
+#--| Step 6 - Deploying Virtual Services / Deploy V1
+# For the Bookinfo application, we have three different versions of a Reviews service available. The reviews service provides a short review, together with a star rating in the newer versions.
+# By default, Istio and Kubernetes will load balance the requests across all the available services. We can use a Virtual Service to control our traffic and force it to only be processed by V1.
+cat samples/bookinfo/networking/virtual-service-all-v1.yaml
+# The file defines the Virtual Services for all the application. For every application, a host is defined (such as productpage), which is a DNS entry of how other applications will communicate with the service. Based on requests to this host, the route defines the destination and which Pods should handle the request.
+# This is deployed via 
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+# When you visit the Product Page you will only see the reviews coming from our V1 service.
+
+# List All Routes
+# It's possible to get a list of all the rules applied using 
+kubectl get virtualservices 
+# and 
+kubectl get virtualservices reviews -o yaml
+
+#--| Step 7 - Updating Virtual Services
+# As with all Kubernetes objects, Virtual Services can be updated which will change how our traffic is processed within the system.
+# This Virtual Service sends all traffic to the V2 rating service, meaning our application would return the star rating
+cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# This is deployed via 
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# When you visit the Product Page (http://172.16.0.22/productpage) you will now see the results from V2.
+# These Virtual Services become the heart of controlling and shaping the traffic within our system.
+
+#-| Step 8 - Egress
+# While the Bookinfo application doesn't need to call external applications, certain applications do.
+# Istio is security focused, meaning applications cannot access external services by default. Instead, the egress (outbound) traffic needs to be configured.
+# Deploy a simple Sleep pod which will attempt to access an external service.
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml)
+
+# Once started, attach to the container:
+export SOURCE_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
+kubectl exec -it $SOURCE_POD -c sleep bash
+# When you attempt to access an external service, it will return a 404.
+curl http://httpbin.org/headers -i
+
+# We need to configure our Egress. Exit the container as we need to deploy additional components.
+# Egress is configured via a ServiceEntry. The ServiceEntry defines how the external can be reached.
+kubectl apply -f /root/istio-1.0.0/serviceEntry.yaml
+cat /root/istio-1.0.0/serviceEntry.yaml
+# Repeat the process of attaching to the container:
+kubectl exec -it $SOURCE_POD -c sleep bash
+# When you attempt to access an external service, it will now return the expected response.
+curl http://httpbin.org/headers -i
+# Within the response, you can also identify all the additional metadata Istio includes to help build metrics, traceability and insights into the inner-workings of the network. These will be explored within the Observing Microservices with Istio course.
+# More information at https://istio.io/docs/tasks/traffic-management/egress/#configuring-the-external-services
 
 
-
-
-
-
+####################################################################################################################
+# xxxx           
+####################################################################################################################
 
 
 
