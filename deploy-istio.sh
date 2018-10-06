@@ -36,3 +36,58 @@ spec:
     protocol: HTTP
   resolution: DNS
   location: MESH_EXTERNAL
+EOF
+
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
+# To make the application available to the outside world a Gateway needs to be deployed. 
+# Within Kubernetes this is managed with Ingress that specifies services that should be exposed outside the cluster.
+# Within Istio, the Istio Ingress Gateway defines this via configuration.
+# A Gateway allows Istio features such as monitoring and route rules to be applied to traffic entering the cluster.
+kubectl get svc --all-namespaces | grep istio-ingressgateway
+
+
+# An example of extending the gateway is this:
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: bookinfo-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+# Because we are using a wildcard (*) character for the host and only one route rule, all traffic from this gateway 
+# to the frontend service (as defined in the VirtualService)
+
+cat samples/bookinfo/networking/bookinfo-gateway.yaml
+# This file contains two objects. The first object is a Gateway, which will allow us to bind to the "istio-ingressgateway" 
+# that exists in the cluster. The second object, a VirtualService, will be discussed in the next step.
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+# To view all gateways on the system, run 
+kubectl get gateway
+
+# A VirtualService defines a set of traffic routing rules to apply when a host is addressed. https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratings
+spec:
+  hosts:
+  - ratings
+  http:
+  - route:
+    - destination:
+        host: ratings
+        subset: v1
+
+# In the above example, we are sending all traffic for the Rating service to v1.
+# The VirtualService traffic will be then be processed by the DestinationRule which will load balance based on LEAST_CONN.
+# For our BookInfo application, because we are using a wildcard (*) character for the host and only one route rule, 
+# all traffic from this gateway to the frontend service. This is defined by the combination of our Gateway and Virtual Services.
