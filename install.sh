@@ -81,9 +81,16 @@ kubectl get nodes
   
 ####################################################################################################################
 # Get Started with Istio and Kubernetes
+# In this scenario, you will learn how to deploy Istio Service Mesh to Kubernetes. 
+# Istio is an open platform that provides a uniform way to connect, manage, and secure microservices. 
+# Istio supports managing traffic flows between microservices, enforcing access policies, and aggregating telemetry-
+# data, all without requiring changes to the microservice code
+
+# The scenario uses the sample BookInfo application. The application has no dependencies on Istio and demonstrates-
+# how any application could build upon Istio without modifications.
 ####################################################################################################################
 
-#--|  Install ISTIO
+#--|  Install Istio
 cd /root/
 curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
 export PATH="$PATH:/root/istio-1.0.0/bin"
@@ -275,7 +282,13 @@ done
 
 
 ####################################################################################################################
-# Traffic Shaping Microservices Connections            
+# Traffic Shaping Microservices Connections
+# In this scenario you will learn how to use Istio to control and manage traffic within your infrastructure.
+# You will learn how to use the following Istio objects:
+#* Ingress and Gateway
+#* Virtual Service
+#* Destination Rule
+#* Egress and Service Entry
 ####################################################################################################################
 
 #--| Traffic Shaping Microservices Connections
@@ -478,8 +491,16 @@ curl http://httpbin.org/headers -i
 
 
 ####################################################################################################################
-# Deploying Canary Releases           
+# Deploying Canary Releases
+# In this scenario, you will learn how to take apply Traffic Shaping techniques discussed in the previous scenario. 
+# By apply Traffic Management, you will be able to control who can access versions of your application making it-
+# possible to perform canary releases with Istio and Kubernetes.
+
+# "Canary release is a technique to reduce the risk of introducing a new software version in production by slowly-
+# rolling out the change to a small subset of users before rolling it out to the entire infrastructure and making-
+# it available to everybody." Martin Flower
 ####################################################################################################################
+
 #--| Step 1 - Remove bookinfo from previous installation
 kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl get pods
@@ -831,6 +852,70 @@ kubectl exec -it $FORTIO_POD  -c istio-proxy  -- sh -c 'curl localhost:15000/sta
 # http://blog.christianposta.com/microservices/01-microservices-patterns-with-envoy-proxy-part-i-circuit-breaking/
 
 
+####################################################################################################################
+# Identifying Slow Services with Distributed Tracing       
+# In this scenario you will learn how to use OpenTracing, Jaeger and Istio to identify slow Microservices.
+####################################################################################################################
+#!/bin/bash
+cd /root/
+launch.sh>&2
+if [[ ! -d "/root/istio-1.0.0" ]]; then
+  echo "Downloading Istio... this may take a couple of moments">&2
+  curl -s -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
+  echo "Download completed. Configuring Kubernetes.">&2
+else
+  echo "Istio already exists">&2
+fi
+export PATH="$PATH:/root/istio-1.0.0/bin";
+cd /root/istio-1.0.0
+kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
+kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+kubectl apply -f /root/expose.yaml
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v1.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-fail.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-fail-50.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-delay-everyone.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-delay-everyone.yaml
+
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yam
+
+#--| Step 1 - Remove bookinfo from previous installation
+!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review kubectl get pods
+#-| Deploy Bookinfo
+# Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
+!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review! kubectl get pods
+
+#--| Step 2 - View Tracing
+# When you visit the Product Page you will only see the reviews coming from our the different deployed services.
+# http://172.16.0.22:16686/
+# Select Service productpage. This selects all the traces that have interacted with the service.
+# Click Find Traces at the bottom.
+# You will now see traces for each request that has been made to the service.
+# Each trace will allow you to identify potentially slow requests or errors that have occurred within the system.
+# If you click on one of the traces, you will be shown the spans for the request.
+# A span is a request to a service, allowing you to see the requests made and how long the process took. 
+# Within each span, you can identify aspects of the request, such as User-Agent string, the IP which processed the request etc. 
+# This can help to identify potentially problematic servers or pods.
+# The list of traces can be filtered based on the duration or specific tags. By using tags, services which are called can -
+# add additional metadata making it easy to identify specific users, functionality, or errors that have occurred.
+
+#--| Step 3 - Simulate Slowdown
+# As discussed in the Increasing Reliability with Istio course, 
+# Istio can be used to simulate errors and problems within the system to verify how it behaves.
+# Use this fault injection functionality inject a delay for all users of the site, 60% of the time.
+# As you'd expect, this is not recommended to run in production, instead always limit it to a particular user.
+
+# Apply the configuration with 
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay-everyone.yaml
+# Now when you visit the product page, you should have a delay before the page is returned.
 
 
 
