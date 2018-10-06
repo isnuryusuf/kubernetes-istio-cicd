@@ -106,6 +106,39 @@ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
+# Bookinfo Architecture
+# The BookInfo sample application deployed is composed of four microservices:
+# * The productpage microservice is the homepage, populated using the details and reviews microservices.
+# * The details microservice contains the book information.
+# * The reviews microservice contains the book reviews. It uses the ratings microservice for the star rating.
+# * The ratings microservice contains the book rating for a book review.
+
+# The deployment included three versions of the reviews microservice to showcase different behaviour and routing:
+# * Version v1 doesn’t call the ratings service.
+# * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
+# * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
+# * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
+# Topology: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/bookinfo-arch.png
+# The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
+
+#--| Control Routing
+#One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
+# there is a requirement for more advanced service-to-service communication control.
+
+#-| User Based Testing / Request Routing
+# One aspect of traffic management is controlling traffic routing based on the HTTP request, such as user agent strings, IP address or cookies.
+# The example below will send all traffic for the user "jason" to the reviews:v2, meaning they'll only see the black stars.
+cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+# Visit the product page http://172.16.0.22/productpage and signin as a user jason (password jason)
+
+#--| Traffic Shaping for Canary Releases
+# The ability to split traffic for testing and rolling out changes is important. 
+# This allows for A/B variation testing or deploying canary releases.
+# The rule below ensures that 50% of the traffic goes to reviews:v1 (no stars), or reviews:v3 (red stars).
+cat samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+
   
 kubectl create deployment nginx --image=nginx
 kubectl create service nodeport nginx --tcp=80:80
@@ -273,7 +306,7 @@ EOF'
 # Grafana Dashboard
 # http://172.16.0.22:3000/d/1/istio-mesh-dashboard
 
-# Booksample App URL
+# productpage App URL
 # http://172.16.0.22/productpage
 
 # 
