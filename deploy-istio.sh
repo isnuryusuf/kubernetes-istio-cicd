@@ -149,7 +149,7 @@ kubectl get destinationrules
 # Now when you visit the Product Page the reviews will appear. As three versions have been defined within our Destination Rule
 # By default, it will load balance across all available review services.
 
-# Step 6 - Deploying Virtual Services
+# Step 6 - Deploying Virtual Services / Deploy V1
 # For the Bookinfo application, we have three different versions of a Reviews service available. The reviews service provides a short review, together with a star rating in the newer versions.
 # By default, Istio and Kubernetes will load balance the requests across all the available services. We can use a Virtual Service to control our traffic and force it to only be processed by V1.
 cat samples/bookinfo/networking/virtual-service-all-v1.yaml
@@ -198,4 +198,23 @@ curl http://httpbin.org/headers -i
 # Within the response, you can also identify all the additional metadata Istio includes to help build metrics, traceability and insights into the inner-workings of the network. These will be explored within the Observing Microservices with Istio course.
 # More information at https://istio.io/docs/tasks/traffic-management/egress/#configuring-the-external-services
 
+##################################################################################################################################
 
+# Deploy V1
+# The default deployment will load balance requests for the reviews across the different versions meaning on each request you may get a different result.
+# As described in our traffic shaping scenario, Virtual Services are used to control the traffic flow within the system. Deploy the Virtual Services to force all traffic to V1 of our system.
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+
+# Step 3 - Access V2 Internally
+# The key to successful canary releases is being able to deploy components of the system into production, 
+# test everything is successful for a small sample before rolling out to a larger user base. If everything is happy, 
+# it can be deployed to 100% of the user-base.
+# Virtual Services provide Layer 7 load balancing and traffic routing. Layer 7 means it's possible to route traffic based 
+# on aspects of HTTP request, such as host headers, user agents or cookies.
+# By having Layer 7 routing, we can provide a specific section of our users with a different response to the request of our user base.
+# For example, if a user as a particular cookie, they could be sent to the V2 version. Using this routing is ideal for 
+# allowing internal employees access before it goes live.
+# The following Virtual Service implements this pattern. If the user is logged in as jason then they will be direct to V2. 
+# As this VirtualService comes all the flow for the reviews host, at the end we indicate that everyone else who didn't match will go to the V1.
+
+cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
