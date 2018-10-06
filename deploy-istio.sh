@@ -163,3 +163,39 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 kubectl get virtualservices 
 # and 
 kubectl get virtualservices reviews -o yaml
+
+
+# Step 7 - Updating Virtual Services
+# As with all Kubernetes objects, Virtual Services can be updated which will change how our traffic is processed within the system.
+# This Virtual Service sends all traffic to the V2 rating service, meaning our application would return the star rating
+cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# This is deployed via 
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# When you visit the Product Page you will now see the results from V2.
+# These Virtual Services become the heart of controlling and shaping the traffic within our system.
+
+
+# Step 8 - Egress
+# While the Bookinfo application doesn't need to call external applications, certain applications do.
+# Istio is security focused, meaning applications cannot access external services by default. Instead, the egress (outbound) traffic needs to be configured.
+# Deploy a simple Sleep pod which will attempt to access an external service.
+kubectl apply -f <(istioctl kube-inject -f samples/sleep/sleep.yaml)
+
+# Once started, attach to the container:
+export SOURCE_POD=$(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name})
+kubectl exec -it $SOURCE_POD -c sleep bash
+# When you attempt to access an external service, it will return a 404.
+curl http://httpbin.org/headers -i
+
+# We need to configure our Egress. Exit the container as we need to deploy additional components.
+# Egress is configured via a ServiceEntry. The ServiceEntry defines how the external can be reached.
+kubectl apply -f /root/istio-1.0.0/serviceEntry.yaml
+cat /root/istio-1.0.0/serviceEntry.yaml
+# Repeat the process of attaching to the container:
+kubectl exec -it $SOURCE_POD -c sleep bash
+# When you attempt to access an external service, it will now return the expected response.
+curl http://httpbin.org/headers -i
+# Within the response, you can also identify all the additional metadata Istio includes to help build metrics, traceability and insights into the inner-workings of the network. These will be explored within the Observing Microservices with Istio course.
+# More information at https://istio.io/docs/tasks/traffic-management/egress/#configuring-the-external-services
+
+
