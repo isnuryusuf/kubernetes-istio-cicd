@@ -108,7 +108,7 @@ kubectl get svc -n istio-system
 # * Citadel / Istio CA - Secures service to service communication over TLS. Providing a key management system to automate key and certificate generation, distribution, rotation, and revocation.
 # * Ingress/Egress - Configure path based routing for inbound and outbound external traffic.
 # * Control Plane API - Underlying Orchestrator such as Kubernetes or Hashicorp Nomad.
-# Topologi: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/istio-arch1.png
+# Topologi: https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/istio-arch1.png
 
 #-| Deploy Sample Application
 # - To showcase Istio, a BookInfo web application has been created. This sample deploys a simple application composed 
@@ -133,7 +133,7 @@ metadata:
     chart: servicegraph-0.1.0
     heritage: Tiller
     release: RELEASE-NAME
-  name: katacoda-servicegraph
+  name: expose-servicegraph
   namespace: istio-system
 spec:
   ports:
@@ -155,7 +155,7 @@ metadata:
     chart: grafana-0.1.0
     heritage: Tiller
     release: RELEASE-NAME
-  name: katacoda-grafana
+  name: expose-grafana
   namespace: istio-system
 spec:
   ports:
@@ -179,7 +179,7 @@ metadata:
     heritage: Tiller
     jaeger-infra: jaeger-service
     release: RELEASE-NAME
-  name: katacoda-jaeger-query
+  name: expose-jaeger-query
   namespace: istio-system
 spec:
   ports:
@@ -198,7 +198,7 @@ kind: Service
 metadata:
   labels:
     name: prometheus
-  name: katacoda-prometheus
+  name: expose-prometheus
   namespace: istio-system
 spec:
   ports:
@@ -282,7 +282,7 @@ EOF'
 # * Version v2 calls the ratings service and displays each rating as 1 to 5 black stars.
 # * Version v3 calls the ratings service and displays each rating as 1 to 5 red stars.
 # * The services communicate over HTTP using DNS for service discovery. An overview of the architecture is shown below.
-# Topology: https://katacoda.com/courses/istio/deploy-istio-on-kubernetes/assets/bookinfo-arch.png
+# Topology: https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png
 # The source code for the application is available on Github: https://github.com/istio/istio/tree/release-0.1/samples/apps/bookinfo/src
 
 #--| Control Routing
