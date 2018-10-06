@@ -1,4 +1,4 @@
-##################################################################################
+####################################################################################################################
 # Environment:
 # CentOS Linux release 7.5.1804 (Core) minimal installation
 # 1 master node (4vCpu, 4Gb RAM, 20GB Disk, Nat or Wan or Bridge Network) 
@@ -8,7 +8,7 @@
 # 172.16.0.20	worker1.variasimx.com (Kubernetes Node1)
 # 172.16.0.21	worker2.variasimx.com (Kubernetes Node1)
 # 172.16.0.22	master.variasimx.com (Kubernetes Master, please take not this IP)
-##################################################################################
+####################################################################################################################
 
 # Prepare Operating System
 setenforce 0
@@ -304,6 +304,7 @@ istioctl get virtualservices
 istioctl get virtualservices -o yam
 
 ####################################################################################################################
+
 #--| Access Metrics
 # With Istio's insight into how applications communicate, 
 # it can generate profound insights into how applications are working and performance metrics.
@@ -344,21 +345,55 @@ done
 
 # Before continuing, stop the traffic (stop generate load) process with ctrl + c
   
+####################################################################################################################
+ 
+#--| Visualise Cluster using Weave Scope
+# While Service Graph displays a high-level overview of how systems are connected, 
+# a tool called Weave Scope provides a powerful visualisation and debugging tool for the entire cluster.
+# Using Scope it's possible to see what processes are running within each pod and which pods are communicating with each other. 
+# This allows users to understand how Istio and their application is behaving.
 
-# Grafana Dashboard
+#-| Deploy Scope
+# Scope is deployed onto a Kubernetes cluster with the command 
+kubectl create -f 'https://cloud.weave.works/launch/k8s/weavescope.yaml'
+# Wait for it to be deployed by checking the status of the pods using kubectl get pods -n weave
+kubectl get pods -n weave
+
+#-| Make Scope Accessible
+# Once deployed, expose the service to the public.
+pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.items..metadata.name})
+kubectl expose pod $pod -n weave --external-ip="172.17.0.35" --port=4040 --target-port=4040
+# Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
+# Ensure correct firewalls and VPNs are configured.
+# View Scope on port 4040 at http://172.16.0.22:4040
+
+#-| Generate Load
+# Scope works by mapping active system calls to different parts of the application and the underlying infrastructure. Create load to see how various parts of the system now communicate.
+while true; do
+  curl -s http://172.16.0.22/productpage > /dev/null
+  echo -n .;
+  sleep 0.2
+done
+
+####################################################################################################################
+
+# Grafana Dashboard URL
 # http://172.16.0.22:3000/d/1/istio-mesh-dashboard
 
 # productpage App URL
 # http://172.16.0.22/productpage
 
-# ServiceGraph
+# ServiceGraph URL
 # http://172.16.0.22:8088/dotviz
 
-# Jeager UI
+# Jeager UI URL
 # http://172.16.0.22:16686/
 
-# Weave Scope
+# Weave Scope URL
 # http://172.16.0.22:4040
+
+
+
 
 
 kubectl create deployment nginx --image=nginx
