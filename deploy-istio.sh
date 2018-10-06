@@ -237,8 +237,38 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-90-10.yaml
 # The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
 
 
+# Step 5 - 20%
+# As confidence grows in v2, changing the Virtual Service weights will start sending more traffic to the latest version.
+cat samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
+# Within the Katacoda Observing Microservices with Istio course, we explain how to use the Istio Dashboards, 
+# Metrics and Tracing to identify when systems are working and the traffic distribution. 
+# These would be critical in understanding how our systems are operating and if the next version is working as expected.
+# If you are interested in seeing the data you can view the Grafana dashboards here.
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+# Each service has it's own version available, allowing you to inspect Reviews Service v1 or Reviews Service v2
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v1&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
 
 
+# Step 6 - Auto Scale
+# During this canary deployment, our system is shifting load from our previous version to the desired version. As a result, the older version is receiving less traffic while our new version is increasing.
+# Running both v1 and v2 at full capacity might not be possible given system resources available. Ideally, we'd like Kubernetes to scale up/down our Pods as the traffic changes.
+# This is possible with Kubernetes by using the Horizontal Pod Autoscaler. Based on CPU usage of the pods we can change the number of Pods running automatically.
+# The auto scale is defined based on the deployments running. This can be found with 
+# The auto scale is defined based on the deployments running. This can be found with kubectl get deployment
+# The deployments show that both v1 and v2 are running. We can tell Kubernetes to autoscale these components with the following commands:
+kubectl autoscale deployment reviews-v1 --cpu-percent=50 --min=1 --max=10
+kubectl autoscale deployment reviews-v2 --cpu-percent=50 --min=1 --max=10
+# If the Pod CPU exceeds 50% then an additional Pod will be started, up to a maximum of 10.
+#View all auto-scaling definitions with 
+kubectl get hpa
 
 
-
+# Step 7 - All Traffic to V2
+# Once happy the Virtual Service can be updated to direct all the traffic to the v2 version.
+cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# This is deployed with the command:
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
+# The Grafana dashboards should also indicate that all traffic is going to Reviews Service v2.
