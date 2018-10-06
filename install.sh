@@ -146,153 +146,9 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
 #-| Expose bookinfo sample app component
 # To make the sample BookInfo application and dashboards available to the outside world, 
+wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/expose.yaml -O /root/expose.yaml
 # change 172.16.0.22 to your master node IP address 
-#------- cut here ------
-bash -c 'cat <<EOF > /root/expose.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: servicegraph
-    chart: servicegraph-0.1.0
-    heritage: Tiller
-    release: RELEASE-NAME
-  name: expose-servicegraph
-  namespace: istio-system
-spec:
-  ports:
-  - name: http
-    port: 8088
-    protocol: TCP
-    targetPort: 8088
-  selector:
-    app: servicegraph
-  type: ClusterIP
-  externalIPs:
-    - 172.16.0.22
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: grafana
-    chart: grafana-0.1.0
-    heritage: Tiller
-    release: RELEASE-NAME
-  name: expose-grafana
-  namespace: istio-system
-spec:
-  ports:
-  - name: http
-    port: 3000
-    protocol: TCP
-    targetPort: 3000
-  selector:
-    app: grafana
-  sessionAffinity: None
-  type: ClusterIP
-  externalIPs:
-    - 172.16.0.22
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: jaeger
-    chart: tracing-0.1.0
-    heritage: Tiller
-    jaeger-infra: jaeger-service
-    release: RELEASE-NAME
-  name: expose-jaeger-query
-  namespace: istio-system
-spec:
-  ports:
-  - name: query-http
-    port: 16686
-    protocol: TCP
-    targetPort: 16686
-  selector:
-    app: jaeger
-  type: ClusterIP
-  externalIPs:
-    - 172.16.0.22
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    name: prometheus
-  name: expose-prometheus
-  namespace: istio-system
-spec:
-  ports:
-  - name: http-prometheus
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
-  selector:
-    app: prometheus
-  type: ClusterIP
-  externalIPs:
-    - 172.16.0.22
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: istio-ingressgateway
-    chart: gateways-1.0.0
-    heritage: Tiller
-    istio: ingressgateway
-    release: RELEASE-NAME
-  name: istio-ingressgateway
-  namespace: istio-system
-spec:
-  externalTrafficPolicy: Cluster
-  ports:
-  - name: http2
-    nodePort: 31380
-    port: 80
-    protocol: TCP
-    targetPort: 80
-  - name: https
-    nodePort: 31390
-    port: 443
-    protocol: TCP
-    targetPort: 443
-  - name: tcp
-    nodePort: 31400
-    port: 31400
-    protocol: TCP
-    targetPort: 31400
-  - name: tcp-pilot-grpc-tls
-    nodePort: 32565
-    port: 15011
-    protocol: TCP
-    targetPort: 15011
-  - name: tcp-citadel-grpc-tls
-    nodePort: 32352
-    port: 8060
-    protocol: TCP
-    targetPort: 8060
-  - name: http2-prometheus
-    nodePort: 31930
-    port: 15030
-    protocol: TCP
-    targetPort: 15030
-  - name: http2-grafana
-    nodePort: 31748
-    port: 15031
-    protocol: TCP
-    targetPort: 15031
-  selector:
-    app: istio-ingressgateway
-    istio: ingressgateway
-  type: LoadBalancer
-  externalIPs:
-  - 172.16.0.22
-EOF'
-#------- cut here ------
+kubectl apply -f /root/expose.yaml
 
 #-| Control Routing
 # One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
@@ -705,11 +561,47 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 #https://2886795309-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
 
 
+####################################################################################################################
+# Simulating Failures Between Microservices  
+####################################################################################################################
+#--| Step 1 - Remove bookinfo from previous installation
+!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review kubectl get pods
+#-| Deploy Bookinfo
+# Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
+!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+!need review! kubectl get pods
+
+#--| Step 2 - Injecting an HTTP delay fault
+# Istio can simulate failures and injects faults into the traffic routing of the system. 
+# This allows developers and operations to simulate or reproduce failures within the system.
+# As Istio has Layer 7 traffic shaping capabilities, as discussed thin the Connecting and Controlling Microservices 
+# with Istio course, it allows HTTP requests to be filtered based on users or team members without affecting other users.
+# In this case, a 7s delay is forced the user jason. Deploy the service with 
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
+
+# You can verify what the current virtual services deployed are with 
+kubectl get virtualservice ratings -o yaml
+# As a normal user, when you visit the Product Page of the Bookinfo application, everything should load as expected. However, 
+# if you sign in as jason then you will experience the delay.
+# This allows you to safely test how systems behaviour within a safe boundary.
+
+#--| Step 3 - Injecting an HTTP abort fault
+# As with timeouts, HTTP errors can also be injected with different HTTP response codes. 
+# This is a great way to verify that applications will handle various errors that might happen in production.
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
+# As a normal user, when you visit the Product Page of the Bookinfo application, everything should load as expected. 
+# However, if you sign in as jason then you will experience errors from the rating service.
+
 
 
 
 : <<'END_COMMENT'
 END_COMMENT
+
+####################################################################################################################
+# XXXXX          
+####################################################################################################################
 
 # Troubleshooting Network, test ClusterIP instead of NodePort
 kubectl create deployment nginx --image=nginx
