@@ -728,7 +728,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https:
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
 
-cat <<EOF >> /root/httpbinRule.yaml
+bash -c 'cat <<EOF > /root/httpbinRule.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -749,6 +749,7 @@ spec:
       maxEjectionPercent: 100
     tls:
       mode: ISTIO_MUTUAL
+EOF'
 
 #--| Step 1 - Deploy HTTPBin Client
 # A Circuit Breaker is a design pattern that allows systems to define limits and restrictions that protect them from -
