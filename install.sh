@@ -417,10 +417,71 @@ done
 ####################################################################################################################
 
 #--| Traffic Shaping Microservices Connections
+kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
 cd /root/istio-1.0.0
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v1.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
+
+cat <<EOF >> /root/istio-1.0.0/serviceEntry.yaml
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: httpbin-ext
+spec:
+  hosts:
+  - httpbin.org
+  ports:
+  - number: 80
+    name: http
+    protocol: HTTP
+  resolution: DNS
+  location: MESH_EXTERNAL
+EOF
+
+#-| Deploy Bookinfo
+# Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
+#--| Step 3 - Ingress
+# To make the application available to the outside world a Gateway needs to be deployed. 
+# Within Kubernetes this is managed with Ingress that specifies services that should be exposed outside the cluster.
+# Within Istio, the Istio Ingress Gateway defines this via configuration.
+# A Gateway allows Istio features such as monitoring and route rules to be applied to traffic entering the cluster.
+kubectl get svc --all-namespaces | grep istio-ingressgateway
+
+# An example of extending the gateway is this:
+#apiVersion: networking.istio.io/v1alpha3
+#kind: Gateway
+#metadata:
+#  name: bookinfo-gateway
+#spec:
+#  selector:
+#    istio: ingressgateway # use istio default controller
+#  servers:
+#  - port:
+#      number: 80
+#      name: http
+#      protocol: HTTP
+#    hosts:
+#    - "*"
+
+# Because we are using a wildcard (*) character for the host and only one route rule, all traffic from this gateway 
+# to the frontend service (as defined in the VirtualService)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
