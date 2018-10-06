@@ -216,5 +216,29 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 # allowing internal employees access before it goes live.
 # The following Virtual Service implements this pattern. If the user is logged in as jason then they will be direct to V2. 
 # As this VirtualService comes all the flow for the reviews host, at the end we indicate that everyone else who didn't match will go to the V1.
-
 cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+
+# When listing services you should only see the current version available.
+kubectl get virtualservice
+kubectl describe virtualservice reviews
+# When you visit the Product Page you will only see the reviews coming from our V1 service. 
+# If you log in at jason you will start to see the V2 service.
+
+# Step 4 - 10% Public Traffic to V2
+# Hopefully V2 is working successfully for Jason meaning it can be rolled out to production.
+# Instead of sending 100% of traffic to V2, we want to slowly roll out the service. 
+# To start with, only 10% of traffic should go to V2.
+# With Virtual Services, this can be done by defining two route destinations. 
+# Each of these destinations can have the desired weight.
+cat samples/bookinfo/networking/virtual-service-reviews-90-10.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-90-10.yaml
+# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. 
+# The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
+
+
+
+
+
+
+
