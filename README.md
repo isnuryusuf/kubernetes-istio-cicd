@@ -10,3 +10,4 @@ see install.sh for detail
 
 ![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/BookInfo-all.png)
 
+![Ssample-application-architecture-and-framework](https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/istio-arch1.png)
