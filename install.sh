@@ -138,6 +138,61 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yam
 # The rule below ensures that 50% of the traffic goes to reviews:v1 (no stars), or reviews:v3 (red stars).
 cat samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+# Logout of user Jason otherwise the above configuration will take priority
+# Note: The weighting is not round robin, multiple requests may go to the same service.
+
+#--| New Releases
+# Given the above approach, if the canary release were successful then we'd want to move 100% of the traffic to reviews:v3.
+cat samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+#This can be done by updating the route with new weighting and rules.
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+
+#--| List All Routes
+# It's possible to get a list of all the rules applied using 
+istioctl get virtualservices 
+#and 
+istioctl get virtualservices -o yam
+
+####################################################################################################################
+#--| Access Metrics
+# With Istio's insight into how applications communicate, 
+# it can generate profound insights into how applications are working and performance metrics.
+
+#-| Generate Load
+#To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
+while true; do
+  curl -s http://172.16.0.22/productpage/productpage > /dev/null
+  echo -n .;
+  sleep 0.2
+done
+# Check metric on browser 
+
+#--| Access Dashboards
+# With the application responding to traffic the graphs will start highlighting what's happening under the covers.
+
+#-| Grafana
+# The first is the Istio Grafana Dashboard. The dashboard returns the total number of requests currently being processed, 
+# along with the number of errors and the response time of each call.
+# Grafana Dashboard
+# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# As Istio is managing the entire service-to-service communicate, the dashboard will highlight the aggregated totals 
+# and the breakdown on an individual service level.
+
+#-| Jaeger
+# Jaeger provides tracing information for each HTTP request. 
+# It shows which calls are made and where the time was spent within each request.
+# Jeager UI
+# http://172.16.0.22:16686/
+
+Click on a span to view the details on an individual request and the HTTP calls made. This is an excellent way to identify issues and potential performance bottlenecks.
+
+Service Graph
+As a system grows, it can be hard to visualise the dependencies between services. The Service Graph will draw a dependency tree of how the system connects.
+
+https://2886795299-8088-ollie02.environments.katacoda.com/dotviz
+
+Before continuing, stop the traffic process with
+
 
   
 kubectl create deployment nginx --image=nginx
