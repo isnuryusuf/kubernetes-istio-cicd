@@ -555,8 +555,8 @@ curl http://httpbin.org/headers -i
 ####################################################################################################################
 
 #--| Step 1 - Remove bookinfo from previous installation
-kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-kubectl get pods
+# kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# kubectl get pods
 
 #--| Step 2 - Deploy V1
 # The default deployment will load balance requests for the reviews across the different versions meaning on each request you may get a different result.
@@ -567,11 +567,13 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 # The next steps will rollout V2 of our rating service as a canary release.
 
 #--| Step 3 - Access V2 Internally
-# The key to successful canary releases is being able to deploy components of the system into production, 
-# test everything is successful for a small sample before rolling out to a larger user base. If everything is happy, 
+# The key to successful canary releases is being able to deploy components of the system into production,-
+# test everything is successful for a small sample before rolling out to a larger user base. If everything is happy,-
 # it can be deployed to 100% of the user-base.
-# Virtual Services provide Layer 7 load balancing and traffic routing. Layer 7 means it's possible to route traffic based 
+
+# Virtual Services provide Layer 7 load balancing and traffic routing. Layer 7 means it's possible to route traffic based-
 # on aspects of HTTP request, such as host headers, user agents or cookies.
+
 # By having Layer 7 routing, we can provide a specific section of our users with a different response to the request of our user base.
 # For example, if a user as a particular cookie, they could be sent to the V2 version. Using this routing is ideal for 
 # allowing internal employees access before it goes live.
@@ -583,8 +585,10 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yam
 # When listing services you should only see the current version available.
 kubectl get virtualservice
 kubectl describe virtualservice reviews
+# Access to http://<master-ip>/productpage/productpage
 # When you visit the Product Page you will only see the reviews coming from our V1 service. 
 # If you log in at jason you will start to see the V2 service.
+
 
 #--| Step 4 - 10% Public Traffic to V2
 # Hopefully V2 is working successfully for Jason meaning it can be rolled out to production.
@@ -604,17 +608,23 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
 # Within the Katacoda Observing Microservices with Istio course, we explain how to use the Istio Dashboards, 
 # Metrics and Tracing to identify when systems are working and the traffic distribution. 
 # These would be critical in understanding how our systems are operating and if the next version is working as expected.
+
 # If you are interested in seeing the data you can view the Grafana dashboards here.
-# https://2886795276-3000-ollie02.environments.katacoda.com/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+# http://<master-ip>:3000/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+
 # Each service has it's own version available, allowing you to inspect Reviews Service v1 or Reviews Service v2
-# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v1&var-srcns=All&var-srcwl=All&var-dstsvc=All
-# https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
-# http://<master-ip>:3000/d/1/istio-mesh-dashboard
+# http://<master-ip>:3000/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v1&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# http://<master-ip>:3000/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# http://<master-ip>:3000/d/1/istio-workload-dashboard
 
 #--| Step 6 - Auto Scale
-# During this canary deployment, our system is shifting load from our previous version to the desired version. As a result, the older version is receiving less traffic while our new version is increasing.
-# Running both v1 and v2 at full capacity might not be possible given system resources available. Ideally, we'd like Kubernetes to scale up/down our Pods as the traffic changes.
-# This is possible with Kubernetes by using the Horizontal Pod Autoscaler. Based on CPU usage of the pods we can change the number of Pods running automatically.
+# During this canary deployment, our system is shifting load from our previous version to the desired version.-
+# As a result, the older version is receiving less traffic while our new version is increasing.
+# Running both v1 and v2 at full capacity might not be possible given system resources available. Ideally,-
+# we'd like Kubernetes to scale up/down our Pods as the traffic changes.
+
+#This is possible with Kubernetes by using the Horizontal Pod Autoscaler.-
+# Based on CPU usage of the pods we can change the number of Pods running automatically.
 # The auto scale is defined based on the deployments running. This can be found with 
 # The auto scale is defined based on the deployments running. This can be found with kubectl get deployment
 # The deployments show that both v1 and v2 are running. We can tell Kubernetes to autoscale these components with the following commands:
