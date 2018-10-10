@@ -960,7 +960,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/katacoda.yaml
+kubectl apply -f /root/expose.yaml
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
@@ -1024,7 +1024,63 @@ kubectl get virtualservice ratings -o yaml
 # the errors will change to 503. Again, the dashboards should showcase this.
 
 
+####################################################################################################################
+# Istio - Visualising Microservices Dependencies with Scope
+# In this scenario, you will learn how you can use Weave Scope to identify the- 
+# dependencies and application connections within your deployment.
+####################################################################################################################
+#!/bin/bash
+cd /root/
+launch.sh>&2
+if [[ ! -d "/root/istio-1.0.0" ]]; then
+  echo "Downloading Istio... this may take a couple of moments">&2
+  curl -s -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
+  echo "Download completed. Configuring Kubernetes.">&2
+else
+  echo "Istio already exists">&2
+fi
+export PATH="$PATH:/root/istio-1.0.0/bin";
+cd /root/istio-1.0.0
+kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
+kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+kubectl apply -f /root/expose.yaml
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
+#-| Step 2 - Deploy Scope
+# Scope is deployed onto a Kubernetes cluster with the command 
+kubectl create -f 'https://cloud.weave.works/launch/k8s/weavescope.yaml'
+# Wait for it to be deployed by checking the status of the pods using 
+kubectl get pods -n weave
+
+# Make Scope Accessible
+# Once deployed, expose the service to the public.
+pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.items..metadata.name})
+kubectl expose pod $pod -n weave --external-ip="172.17.0.33" --port=4040 --target-port=4040
+# Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
+# Ensure correct firewalls and VPNs are configured.
+# View Scope on port 4040 at http://172.16.0.22:4040/
+
+#-| Step 3 - View Dependencies with Scope
+# Scope will display the deployments on Kubernetes, together with the connections and data flows between them.
+# As the Scope data is based on live system traffic, as data flows change, the dependencies and connections will update to match. When the system scales or changes, Scope will redraw to update the changes.
+# Scope has a number of interesting features:
+#* You can hide system components, such as Istio, by changing the namespaces that are viewable.
+#* By clicking each node, you can see what is running within the Pod, identifying memory or CPU consumption.
+#* Scope also has the ability to view the live logs and attach to a running container directly within the application.
+
+#-| Step 4 - Deploy V3
+# As this is a live system, change the application to use V2/V3 of the Bookinfo deployment.
+# This is done by deploying the Virtual Service with 
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2-v3.yaml
+# When you visit the Product Page you will only see the reviews/ratings coming from V2 and V3. 
+# Within Scope, you should see no requests being made to the v1 service.
+
+#-| Step 5 - Service Graph
+# Within Istio, the default deployment also includes the ability to draw a graph using Graphviz.
+# This produces a static graph of the dependencies and the request count being made.
+# http://172.16.0.22/dotviz
 
 
 : <<'END_COMMENT'
