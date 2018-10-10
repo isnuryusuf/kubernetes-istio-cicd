@@ -939,6 +939,93 @@ kubectl get virtualservice ratings -o yaml
 
 
 
+####################################################################################################################
+# Graphing System Metrics with Prometheus and Grafana
+# In this scenario, you will learn how to use Istio to create graphs showing live real-time system metrics and connections.
+# Istio has many built-in dashboards that show how the system is performing. The scenario will discuss what's -
+# available and what to look for within each scenario.
+####################################################################################################################
+
+#!/bin/bash
+cd /root/
+launch.sh>&2
+if [[ ! -d "/root/istio-1.0.0" ]]; then
+  echo "Downloading Istio... this may take a couple of moments">&2
+  curl -s -L https://git.io/getLatestIstio | ISTIO_VERSION=1.0.0 sh -
+  echo "Download completed. Configuring Kubernetes.">&2
+else
+  echo "Istio already exists">&2
+fi
+export PATH="$PATH:/root/istio-1.0.0/bin";
+cd /root/istio-1.0.0
+kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
+kubectl apply -f install/kubernetes/istio-demo-auth.yaml
+kubectl apply -f /root/katacoda.yaml
+kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
+
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/bed904fb75516e8e0dd87c86c5b274fb4c5e372c/virtual-service-reviews-v1.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/cf8426de87eb29716f41070bb619c6f4fbd759af/virtual-service-reviews-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/c3c3a25721af90e180c1b02c618d6c8b660402d7/virtual-service-reviews-chrome-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/83aa5bdae88062729fe9c410ea691f7640b3233f/virtual-service-ratings-test-fail.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/05d9502c47dca7eec396dfad4231278295b8d9e4/virtual-service-ratings-test-fail-50.yaml
+
+
+#-| Step 2 - Generate Load
+#With Istio's insight into how applications communicate, it can generate profound insights into how 
+# applications are working and performance metrics.
+# Istio automatically collects metrics about the data connections, latency and error count that helps identify how the
+# system is performing and increases in error rates.
+# Generate Load
+# To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
+while true; do
+  curl -s http://172.16.0.22/productpage > /dev/null
+  echo -n .;
+  sleep 0.2
+done
+# The various Istio dashboards will highlight key information about the system to help gain insights 
+# into the inter-working of the applications.
+
+#-| Step 3 - Mesh Dashboard
+# The Istio Mesh Dashboard provides a top-level overview of the workloads running and how they are performing.
+# The dashboard highlights:
+#* Service / Workload
+#* Requests
+#* P50 Latency / P90 Latency / P99 Latency
+#* Success Rate
+
+# View the dashboard at http://172.16.0.22:3000/dashboard/db/istio-mesh-dashboard
+# The different dashboards can be selected via the dropdown in the top left corner.
+
+#-| Step 4 - Service Dashboard
+# The Istio Service Dashboard showcases the upstream (client) and services metrics.
+# http://172.16.0.22:3000/dashboard/db/istio-service-dashboard
+# Changing dropdowns to view details of each component within the system. At the top, 
+# different options are available to drill into different services and deployments.
+
+#-| Step 5 - Workload Dashboard
+# The Istio Workload Dashboard will show individual deployments running within Istio.
+# http://172.16.0.22:3000/dashboard/db/istio-workload-dashboard
+
+#-| Step 6 - Generate Failure
+# Using the Fault Injection functionality within Istio, it's possible to cause failures. 
+# This should be visible from the dashboards.
+# The following Virtual Service will cause the rating service to fail 50% of the time.
+kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml
+# Check it's deployed with the command 
+kubectl get virtualservice ratings -o yaml
+
+# When visiting the Product Page you should see the Rating service will now be failing 50% of the time.
+# With the Istio Service Dashboard you can identify this failure and when it's occurring.
+# If you delete the deployment entirely
+# kubectl delete deployment ratings-v1
+# the errors will change to 503. Again, the dashboards should showcase this.
+
+
+
 
 
 : <<'END_COMMENT'
