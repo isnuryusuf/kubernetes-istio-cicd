@@ -3,6 +3,7 @@
 # CentOS Linux release 7.5.1804 (Core) minimal installation
 # 1 Kubernetes master node (4vCpu, 4Gb RAM, 20GB Disk, Nat or Wan or Bridge Network) 
 # 1 Kubernetes Worker Node or More (2vCpu, 2Gb RAM, 20GB Disk, Nat or Wan or Bridge Network)
+# <master-ip> = 172.16.0.22 (for my demo)
 # 
 # /etc/hosts file
 # 172.16.0.20	worker1.variasimx.com (Kubernetes Node1)
@@ -49,13 +50,13 @@ swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
 # Configuration of the Kubernetes Master 
-# 172.16.0.22 my master IP, 192.168.0.0/16 is default istio Network, please use default istio network
+# <master-ip> my master IP, 192.168.0.0/16 is default istio Network, please use default istio network
 # More info related to install istio please go to:
 # https://istio.io/docs/setup/kubernetes/quick-start/
 # https://istio.io/docs/setup/kubernetes/sidecar-injection
 
 # Initializes a Kubernetes master node
-kubeadm init --apiserver-advertise-address=172.16.0.22  --pod-network-cidr=192.168.0.0/16
+kubeadm init --apiserver-advertise-address=<master-ip>  --pod-network-cidr=192.168.0.0/16
 # Take note on --discovery-token-ca-cert-hash
 kubectl cluster-info
 
@@ -65,7 +66,7 @@ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
   
 # join Worker node to master
-kubeadm join 172.16.0.22:6443 --token ly4swk.uyxl37ovhi0m7ktt --discovery-token-ca-cert-hash <token-hash>
+kubeadm join <master-ip>:6443 --token ly4swk.uyxl37ovhi0m7ktt --discovery-token-ca-cert-hash <token-hash>
 kubectl get nodes
 
 # Check core-dns is up and running
@@ -154,7 +155,7 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 #-| Expose bookinfo sample app component
 # To make the sample BookInfo application and dashboards available to the outside world, 
 wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/expose.yaml -O /root/expose.yaml
-# change 172.16.0.22 to your master node IP address 
+# change <master-ip> to your master node IP address 
 kubectl apply -f /root/expose.yaml
 
 #-| Control Routing
@@ -166,7 +167,7 @@ kubectl apply -f /root/expose.yaml
 # The example below will send all traffic for the user "jason" to the reviews:v2, meaning they'll only see the black stars.
 cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
-# Visit the product page http://172.16.0.22/productpage and signin as a user jason (password jason)
+# Visit the product page http://<master-ip>/productpage and signin as a user jason (password jason)
 
 #-| Traffic Shaping for Canary Releases
 # The ability to split traffic for testing and rolling out changes is important. 
@@ -197,14 +198,14 @@ istioctl get virtualservices -o yam
 
 #-| Generate Load
 # To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
-# 172.16.0.22 is your Kubernetes Master node
+# <master-ip> is your Kubernetes Master node
 while true; do
-  curl -s http://172.16.0.22/productpage/productpage > /dev/null
+  curl -s http://<master-ip>/productpage/productpage > /dev/null
   echo -n .;
   sleep 0.2
 done
 # Check metric on browser 
-# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# http://<master-ip>:3000/d/1/istio-mesh-dashboard
 
 #--| Access Dashboards
 # With the application responding to traffic the graphs will start highlighting what's happening under the covers.
@@ -213,7 +214,7 @@ done
 # The first is the Istio Grafana Dashboard. The dashboard returns the total number of requests currently being processed, 
 # along with the number of errors and the response time of each call.
 # Grafana Dashboard
-# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# http://<master-ip>:3000/d/1/istio-mesh-dashboard
 # As Istio is managing the entire service-to-service communicate, the dashboard will highlight the aggregated totals 
 # and the breakdown on an individual service level.
 
@@ -221,7 +222,7 @@ done
 # Jaeger provides tracing information for each HTTP request. 
 # It shows which calls are made and where the time was spent within each request.
 # Jeager UI
-# http://172.16.0.22:16686/
+# http://<master-ip>:16686/
 # Click on a span to view the details on an individual request and the HTTP calls made. 
 # This is an excellent way to identify issues and potential performance bottlenecks.
 
@@ -229,7 +230,7 @@ done
 # As a system grows, it can be hard to visualise the dependencies between services. 
 # The Service Graph will draw a dependency tree of how the system connects.
 # ServiceGraph
-# http://172.16.0.22:8088/dotviz
+# http://<master-ip>:8088/dotviz
 
 # Before continuing, stop the traffic (stop generate load) process with ctrl + c
   
@@ -253,12 +254,12 @@ pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.ite
 kubectl expose pod $pod -n weave --external-ip="172.17.0.35" --port=4040 --target-port=4040
 # Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
 # Ensure correct firewalls and VPNs are configured.
-# View Scope on port 4040 at http://172.16.0.22:4040
+# View Scope on port 4040 at http://<master-ip>:4040
 
 #-| Generate Load
 # Scope works by mapping active system calls to different parts of the application and the underlying infrastructure. Create load to see how various parts of the system now communicate.
 while true; do
-  curl -s http://172.16.0.22/productpage > /dev/null
+  curl -s http://<master-ip>/productpage > /dev/null
   echo -n .;
   sleep 0.2
 done
@@ -266,19 +267,19 @@ done
 ####################################################################################################################
 
 # Grafana Dashboard URL
-# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# http://<master-ip>:3000/d/1/istio-mesh-dashboard
 
 # Productpage App URL
-# http://172.16.0.22/productpage
+# http://<master-ip>/productpage
 
 # ServiceGraph URL
-# http://172.16.0.22:8088/dotviz
+# http://<master-ip>:8088/dotviz
 
 # Jeager UI URL
-# http://172.16.0.22:16686/
+# http://<master-ip>:16686/
 
 # Weave Scope URL
-# http://172.16.0.22:4040
+# http://<master-ip>:4040
 
 
 ####################################################################################################################
@@ -463,7 +464,7 @@ kubectl get virtualservices reviews -o yaml
 cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 # This is deployed via 
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
-# When you visit the Product Page (http://172.16.0.22/productpage) you will now see the results from V2.
+# When you visit the Product Page (http://<master-ip>/productpage) you will now see the results from V2.
 # These Virtual Services become the heart of controlling and shaping the traffic within our system.
 
 #-| Step 8 - Egress
@@ -556,7 +557,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
 # Each service has it's own version available, allowing you to inspect Reviews Service v1 or Reviews Service v2
 # https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v1&var-srcns=All&var-srcwl=All&var-dstsvc=All
 # https://2886795276-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
-# http://172.16.0.22:3000/d/1/istio-mesh-dashboard
+# http://<master-ip>:3000/d/1/istio-mesh-dashboard
 
 #--| Step 6 - Auto Scale
 # During this canary deployment, our system is shifting load from our previous version to the desired version. As a result, the older version is receiving less traffic while our new version is increasing.
@@ -721,7 +722,7 @@ kubectl apply -f /root/istio-1.0.0/virtualServiceReviews.yaml
 # As discussed in the Observing Microservices with Istio course, Istio has traceability built-in. 
 # The traceability can help identify the requests to the system, the dependent services and the system calls made.
 # With the timeout in place, it's possible to identify the system calls producing an error.
-# Visit the Jaeger dashboard at http://172.16.0.22:16686/
+# Visit the Jaeger dashboard at http://<master-ip>:16686/
 
 
 ####################################################################################################################
@@ -896,7 +897,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yam
 
 #--| Step 2 - View Tracing
 # When you visit the Product Page you will only see the reviews coming from our the different deployed services.
-# http://172.16.0.22:16686/
+# http://<master-ip>:16686/
 # Select Service productpage. This selects all the traces that have interacted with the service.
 # Click Find Traces at the bottom.
 # You will now see traces for each request that has been made to the service.
@@ -981,7 +982,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.y
 # Generate Load
 # To view the graphs, there first needs to be some traffic. Execute the command below to send requests to the application.
 while true; do
-  curl -s http://172.16.0.22/productpage > /dev/null
+  curl -s http://<master-ip>/productpage > /dev/null
   echo -n .;
   sleep 0.2
 done
@@ -996,18 +997,18 @@ done
 #* P50 Latency / P90 Latency / P99 Latency
 #* Success Rate
 
-# View the dashboard at http://172.16.0.22:3000/dashboard/db/istio-mesh-dashboard
+# View the dashboard at http://<master-ip>:3000/dashboard/db/istio-mesh-dashboard
 # The different dashboards can be selected via the dropdown in the top left corner.
 
 #-| Step 4 - Service Dashboard
 # The Istio Service Dashboard showcases the upstream (client) and services metrics.
-# http://172.16.0.22:3000/dashboard/db/istio-service-dashboard
+# http://<master-ip>:3000/dashboard/db/istio-service-dashboard
 # Changing dropdowns to view details of each component within the system. At the top, 
 # different options are available to drill into different services and deployments.
 
 #-| Step 5 - Workload Dashboard
 # The Istio Workload Dashboard will show individual deployments running within Istio.
-# http://172.16.0.22:3000/dashboard/db/istio-workload-dashboard
+# http://<master-ip>:3000/dashboard/db/istio-workload-dashboard
 
 #-| Step 6 - Generate Failure
 # Using the Fault Injection functionality within Istio, it's possible to cause failures. 
@@ -1060,7 +1061,7 @@ pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.ite
 kubectl expose pod $pod -n weave --external-ip="172.17.0.33" --port=4040 --target-port=4040
 # Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
 # Ensure correct firewalls and VPNs are configured.
-# View Scope on port 4040 at http://172.16.0.22:4040/
+# View Scope on port 4040 at http://<master-ip>:4040/
 
 #-| Step 3 - View Dependencies with Scope
 # Scope will display the deployments on Kubernetes, together with the connections and data flows between them.
@@ -1080,7 +1081,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2-v3.yaml
 #-| Step 5 - Service Graph
 # Within Istio, the default deployment also includes the ability to draw a graph using Graphviz.
 # This produces a static graph of the dependencies and the request count being made.
-# http://172.16.0.22/dotviz
+# http://<master-ip>/dotviz
 
 
 : <<'END_COMMENT'
