@@ -199,18 +199,22 @@ cat samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
 # Logout of user Jason otherwise the above configuration will take priority
 # Note: The weighting is not round robin, multiple requests may go to the same service.
+# Open http://<master-ip>/productpage and refresh periodicly (press f5 to refresh on browser)
+
+####################################################################################################################
 
 #-| New Releases
 # Given the above approach, if the canary release were successful then we'd want to move 100% of the traffic to reviews:v3.
 cat samples/bookinfo/networking/virtual-service-reviews-v3.yaml
 #This can be done by updating the route with new weighting and rules.
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+# Open http://<master-ip>/productpage and refresh periodicly (press f5 to refresh on browser)
 
 #--| List All Routes
 # It's possible to get a list of all the rules applied using 
 istioctl get virtualservices 
 #and 
-istioctl get virtualservices -o yam
+istioctl get virtualservices -o yaml
 
 ####################################################################################################################
 
