@@ -12,12 +12,13 @@
 #
 # To lazy to prepare your environment, you can use: https://www.katacoda.com/courses/istio/deploy-istio-on-kubernetes
 ####################################################################################################################
-
-# Prepare Operating System, disabling Selinux and Firewalld
+# Master and Node
+# Prepare Operating System, disabling Selinux and Firewalld 
 setenforce 0
 sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
 systemctl disable firewalld
 
+# Master and Node
 # Enable Kubernetes Repository
 bash -c 'cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -29,12 +30,14 @@ repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOF'
 
+# Master and Node
 # Update Centos and Reboot to apply latest kernel, ater reboot install kubernetes and enable docker & kubelet into startup
 yum repolist; yum -y update; reboot
 yum install kubeadm kubelet kubectl docker -y
 systemctl enable docker
 systemctl enable kubelet
 
+# Master and Node
 # Enable BR filter
 modprobe br_netfilter
 bash -c 'cat <<EOF > /etc/sysctl.d/k8s.conf
@@ -45,6 +48,7 @@ sysctl -p
 echo 1 >  /proc/sys/net/bridge/bridge-nf-call-iptables
 echo 1 >  /proc/sys/net/bridge/bridge-nf-call-ip6tables
 
+# Master and Node
 # Disable swap, no need swap on kubernetes
 swapoff -a
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
@@ -58,26 +62,32 @@ sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 # Initializes a Kubernetes master node
 kubeadm init --apiserver-advertise-address=<master-ip>  --pod-network-cidr=192.168.0.0/16
 # Take note on --discovery-token-ca-cert-hash
-kubectl cluster-info
+# example:
+# kubeadm join 172.16.0.22:6443 --token k4l46z.o07cabxrgjk10pp3 --discovery-token-ca-cert-hash sha256:c4b8100526838ec6da0e12e4dd7336124a852ca719f532e7fb3bdff9c77dfff4
 
-# COpy credential to home dir and set permission
+# COpy credential to home dir and set permission in master
 mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl cluster-info
   
 # join Worker node to master
 kubeadm join <master-ip>:6443 --token ly4swk.uyxl37ovhi0m7ktt --discovery-token-ca-cert-hash <token-hash>
 kubectl get nodes
 
-# Check core-dns is up and running
+# Check core-dns is up and running in master
 watch -n 2 kubectl get pods --all-namespaces -o wide
+# core-dns pod should be in status: ContainerCreating, from the node /var/log/messages we will found:
+# cni.go:188] Unable to update cni config: No networks found in /etc/cni/net.d
   
-# Deploy CNI using weave
+# Deploy CNI using weave in master
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
   
 # make sure core-dns is up and running
 watch -n 2 kubectl get pods --all-namespaces -o wide
 kubectl get nodes
+# Now core-dns was running and Node in Status: Ready
 
   
 ####################################################################################################################
