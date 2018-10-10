@@ -967,12 +967,11 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-all-v1.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 
-curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/bed904fb75516e8e0dd87c86c5b274fb4c5e372c/virtual-service-reviews-v1.yaml
-curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/cf8426de87eb29716f41070bb619c6f4fbd759af/virtual-service-reviews-v2.yaml
-curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/c3c3a25721af90e180c1b02c618d6c8b660402d7/virtual-service-reviews-chrome-v2.yaml
-curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/83aa5bdae88062729fe9c410ea691f7640b3233f/virtual-service-ratings-test-fail.yaml
-curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml https://gist.githubusercontent.com/BenHall/e5fa7eed7e1b0bc21ac0abbd431efc37/raw/05d9502c47dca7eec396dfad4231278295b8d9e4/virtual-service-ratings-test-fail-50.yaml
-
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v1.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-fail.yaml
+curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-fail-50.yaml
 
 #-| Step 2 - Generate Load
 #With Istio's insight into how applications communicate, it can generate profound insights into how 
