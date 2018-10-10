@@ -123,4 +123,19 @@ The overall architecture is shown below.
 # Identifying Slow Services with Distributed Tracing       
 # In this scenario you will learn how to use OpenTracing, Jaeger and Istio to identify slow Microservices.
 ####################################################################################################################
+
+####################################################################################################################
+# Graphing System Metrics with Prometheus and Grafana
+# In this scenario, you will learn how to use Istio to create graphs showing live real-time system metrics and connections.
+# Istio has many built-in dashboards that show how the system is performing. The scenario will discuss what's -
+# available and what to look for within each scenario.
+####################################################################################################################
+
+####################################################################################################################
+# Istio - Visualising Microservices Dependencies with Scope
+# In this scenario, you will learn how you can use Weave Scope to identify the- 
+# dependencies and application connections within your deployment.
+####################################################################################################################
+
+
 ```
