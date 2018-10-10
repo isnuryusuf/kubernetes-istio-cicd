@@ -117,9 +117,10 @@ kubectl apply -f install/kubernetes/istio-demo-auth.yaml
 # This will deploy Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA (Certificate Authority). 
 # These are explained in the next step.
 
-#-| Check Status, All the services are deployed as Pods.
+#-| Check Status, All the services are deployed as Pods and Running without Error.
 kubectl get pods -n istio-system
 kubectl get svc -n istio-system
+# If your network doesnt support LoadBalancer mode, the istio-ingressgateway EXTERNAL-IP will show <pending> state
 
 #-| The previous step deployed the Istio Pilot, Mixer, Ingress-Controller, and Egress-Controller, and the Istio CA 
 # (Certificate Authority).
