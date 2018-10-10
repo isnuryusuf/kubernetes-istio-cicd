@@ -154,9 +154,9 @@ kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
 #-| Expose bookinfo sample app component
 # To make the sample BookInfo application and dashboards available to the outside world, 
-wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/expose.yaml -O /root/expose.yaml
+wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/expose.yaml -O /root/kubernetes-istio-cicd/expose.yaml
 # change <master-ip> to your master node IP address 
-kubectl apply -f /root/expose.yaml
+kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 
 #-| Control Routing
 # One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
@@ -740,7 +740,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/expose.yaml
+kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
@@ -872,7 +872,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/expose.yaml
+kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
@@ -961,7 +961,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/expose.yaml
+kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
@@ -1044,7 +1044,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/expose.yaml
+kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
