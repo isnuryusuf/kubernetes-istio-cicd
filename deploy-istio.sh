@@ -12,7 +12,7 @@ export PATH="$PATH:/root/istio-1.0.0/bin";
 cd /root/istio-1.0.0
 kubectl apply -f install/kubernetes/helm/istio/templates/crds.yaml -n istio-system
 kubectl apply -f install/kubernetes/istio-demo-auth.yaml
-kubectl apply -f /root/katacoda.yaml
+kubectl apply -f /root/expose.yaml
 
 # kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
 # kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
