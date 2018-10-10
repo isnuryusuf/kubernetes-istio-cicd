@@ -819,7 +819,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https:
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
 
-bash -c 'cat <<EOF > /root/httpbinRule.yaml
+bash -c 'cat <<EOF > /root/istio-1.0.0/httpbinRule.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
@@ -848,19 +848,20 @@ EOF'
 # is tripped and requests fail in a known, consistent approach. This allows the calling application to handle the errors gracefully.
 # Without a Circuit Breaker in place, unknown system errors or inconsistencies may appear causing additional problems and unexpected results.
 
-# Within the Istio architecture, Envoy Proxy is used to manage traffic between services. As a result, 
+# Within the Istio architecture, Envoy Proxy is used to manage traffic between services. As a result,- 
 # all the functionality available within Envoy is exposed via Istio, such as Envoy's Circuit Breaker. The types include:
-#* Cluster maximum connections: The maximum number of connections that Envoy will establish to all hosts in an upstream cluster.
-#* Cluster maximum pending requests: The maximum number of requests that will be queued while waiting for a ready connection pool connection.
-#* Cluster maximum requests: The maximum number of requests that can be outstanding to all hosts in a cluster at any given time.
-#* Cluster maximum active retries: The maximum number of retries that can be outstanding to all hosts in a cluster at any given time.
+# * Cluster maximum connections: The maximum number of connections that Envoy will establish to all hosts in an upstream cluster.
+# * Cluster maximum pending requests: The maximum number of requests that will be queued while waiting for a ready connection pool connection.
+# * Cluster maximum requests: The maximum number of requests that can be outstanding to all hosts in a cluster at any given time.
+# * Cluster maximum active retries: The maximum number of retries that can be outstanding to all hosts in a cluster at any given time.
 
-# In this example, we'll deploy an HTTPBin service. The service echoes the HTTP request as a response, allowing us to identify responses and errors easily.
+# In this example, we'll deploy an HTTPBin service. The service echoes the HTTP request as a response,-
+# allowing us to identify responses and errors easily.
 # Deploy the application with 
 kubectl apply -f <(istioctl kube-inject -f samples/httpbin/httpbin.yaml)
 
 #--| Step 2 - Configure Circuit Breaker
-# To access the HTTPBin service, a client is required. The sleep sample application doesn't execute any workload, instead, 
+# To access the HTTPBin service, a client is required. The sleep sample application doesn't execute any workload, instead,- 
 # it allows users to attach and execute bash commands interactively. The container will allow us to test and debug our system.
 
 # Deploy a sleep container with 
@@ -877,19 +878,22 @@ curl http://httpbin:8000/get;
 # Within Istio, the traffic and networking approaches can be updated and modified based on requirements.
 # As discussed in the Connecting and Controlling Istio scenarios, Virtual Services direct the traffic flow 
 # to which version of the component(s) should handle the request. Destination Rules configure the network and load balancing 
-# of the traffic. With a Destination Rule it's possible to implement a Circuit Breaker to restrict the number of concurrent requests to a service.
+# of the traffic. With a Destination Rule it's possible to implement a Circuit Breaker to-
+# restrict the number of concurrent requests to a service.
 
 # The Destination Rule below has two Circuit Breakers that can trigger. 
 # The first is a Connection Pool that limits the maximum TCP connections to 1, and a maximum of 1 HTTP request per connection.
 
-# The second is an Outlier Detection that automatically removes failing nodes if they have consecutively returned 500 error messages for more than a period of time.
-kubectl apply -f /root/httpbinRule.yaml
-cat /root/httpbinRule.yaml
+# The second is an Outlier Detection that automatically removes failing nodes if-
+# they have consecutively returned 500 error messages for more than a period of time.
+cat /root/istio-1.0.0/httpbinRule.yaml
+kubectl apply -f /root/istio-1.0.0/httpbinRule.yaml
 
 # After this has been deployed, you should find the application still functions as before.
 kubectl exec -it $(kubectl get pod -l app=sleep -o jsonpath={.items..metadata.name}) bash
 curl http://httpbin:8000/get;
-# Exit the container to continue. In the next step, we'll increase the load and watch how Istio and Envoy Proxy trips the circuit breaker
+# Exit the container to continue. In the next step, we'll increase the load and watch-
+# how Istio and Envoy Proxy trips the circuit breaker
 
 #--| Step 4 - Tripping Circuit Breaker
 # With the circuit breaker in place, we should be able to trigger errors via a load test.
