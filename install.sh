@@ -239,14 +239,18 @@ done
 #-| Grafana
 # The first is the Istio Grafana Dashboard. The dashboard returns the total number of requests currently being processed, 
 # along with the number of errors and the response time of each call.
+
 # Grafana Dashboard
 # http://<master-ip>:3000/d/1/istio-mesh-dashboard
 # As Istio is managing the entire service-to-service communicate, the dashboard will highlight the aggregated totals 
 # and the breakdown on an individual service level.
 
+####################################################################################################################
+
 #-| Jaeger
 # Jaeger provides tracing information for each HTTP request. 
 # It shows which calls are made and where the time was spent within each request.
+
 # Jeager UI
 # http://<master-ip>:16686/
 # Click on a span to view the details on an individual request and the HTTP calls made. 
@@ -277,13 +281,15 @@ kubectl get pods -n weave
 #-| Make Scope Accessible
 # Once deployed, expose the service to the public.
 pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.items..metadata.name})
-kubectl expose pod $pod -n weave --external-ip="172.17.0.35" --port=4040 --target-port=4040
+echo $pod
+kubectl expose pod $pod -n weave --external-ip="<master-ip>" --port=4040 --target-port=4040
 # Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
 # Ensure correct firewalls and VPNs are configured.
 # View Scope on port 4040 at http://<master-ip>:4040
 
 #-| Generate Load
-# Scope works by mapping active system calls to different parts of the application and the underlying infrastructure. Create load to see how various parts of the system now communicate.
+# Scope works by mapping active system calls to different parts of the application and the underlying infrastructure. 
+# Create load to see how various parts of the system now communicate.
 while true; do
   curl -s http://<master-ip>/productpage > /dev/null
   echo -n .;
@@ -312,10 +318,11 @@ done
 # Traffic Shaping Microservices Connections
 # In this scenario you will learn how to use Istio to control and manage traffic within your infrastructure.
 # You will learn how to use the following Istio objects:
-#* Ingress and Gateway
-#* Virtual Service
-#* Destination Rule
-#* Egress and Service Entry
+# * Ingress and Gateway
+# * Virtual Service
+# * Destination Rule
+# * Egress and Service Entry
+
 ####################################################################################################################
 
 #--| Traffic Shaping Microservices Connections
@@ -328,7 +335,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v1.yaml https:
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-v2.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-reviews-chrome-v2.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-reviews-chrome-v2.yaml
 
-cat <<EOF >> /root/istio-1.0.0/serviceEntry.yaml
+cat <<EOF > /root/istio-1.0.0/serviceEntry.yaml
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
@@ -385,7 +392,8 @@ kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get gateway
 
 #-| Step 4 - Virtual Services
-# A VirtualService defines a set of traffic routing rules to apply when a host is addressed. https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService
+# A VirtualService defines a set of traffic routing rules to apply when a host is addressed. 
+# for detail https://istio.io/docs/reference/config/istio.networking.v1alpha3/#VirtualService
 : <<'END_COMMENT'
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
