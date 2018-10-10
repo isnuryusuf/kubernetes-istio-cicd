@@ -631,18 +631,21 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-80-20.yaml
 kubectl autoscale deployment reviews-v1 --cpu-percent=50 --min=1 --max=10
 kubectl autoscale deployment reviews-v2 --cpu-percent=50 --min=1 --max=10
 # If the Pod CPU exceeds 50% then an additional Pod will be started, up to a maximum of 10.
-#View all auto-scaling definitions with 
+# View all auto-scaling definitions with 
 kubectl get hpa
+# Hit http://<master-ip>/productpage with your favorite Stress test tools
 
-#--| Step 7 - All Traffic to V2
+#--| Step 7 - Configure All Traffic to V2
 # Once happy the Virtual Service can be updated to direct all the traffic to the v2 version.
 cat samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 # This is deployed with the command:
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
-# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. The order isn't 100% even, but given a large enough distribution of traffic, the ratios will even out.
+# When you visit the Product Page you will see mainly V1 responses, but every 1/10 should be V2. The order isn't 100% even,-
+# but given a large enough distribution of traffic, the ratios will even out.
+
 # The Grafana dashboards should also indicate that all traffic is going to Reviews Service v2.
-#https://2886795309-3000-ollie02.environments.katacoda.com/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
-#https://2886795309-3000-ollie02.environments.katacoda.com/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
+# http://<master-ip>:3000/d/LJ_uJAvmk/istio-service-dashboard?refresh=10s&orgId=1&var-service=reviews.default.svc.cluster.local&var-srcns=All&var-srcwl=All&var-dstns=All&var-dstwl=All
+# http://<master-ip>:3000/d/UbsSZTDik/istio-workload-dashboard?refresh=10s&orgId=1&var-namespace=default&var-workload=reviews-v2&var-srcns=All&var-srcwl=All&var-dstsvc=All
 
 
 ####################################################################################################################
@@ -656,12 +659,13 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 ####################################################################################################################
 
 #--| Step 1 - Remove bookinfo from previous installation
-!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review kubectl get pods
+# kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# kubectl get pods
+
 #-| Deploy Bookinfo
 # Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
-!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review! kubectl get pods
+# kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# kubectl get pods
 
 #--| Step 2 - Injecting an HTTP delay fault
 # Istio can simulate failures and injects faults into the traffic routing of the system. 
@@ -669,6 +673,7 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 # As Istio has Layer 7 traffic shaping capabilities, as discussed thin the Connecting and Controlling Microservices 
 # with Istio course, it allows HTTP requests to be filtered based on users or team members without affecting other users.
 # In this case, a 7s delay is forced the user jason. Deploy the service with 
+cat samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
 
 # You can verify what the current virtual services deployed are with 
@@ -680,6 +685,7 @@ kubectl get virtualservice ratings -o yaml
 #--| Step 3 - Injecting an HTTP abort fault
 # As with timeouts, HTTP errors can also be injected with different HTTP response codes. 
 # This is a great way to verify that applications will handle various errors that might happen in production.
+cat samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
 # As a normal user, when you visit the Product Page of the Bookinfo application, everything should load as expected. 
 # However, if you sign in as jason then you will experience errors from the rating service.
@@ -693,14 +699,14 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-abort.
 # By implementing a timeout, services will always return within a known time, either as a success or an error.
 # Based on https://istio.io/docs/tasks/traffic-management/request-timeouts/
 ####################################################################################################################
-
 #--| Step 1 - Remove bookinfo from previous installation
-!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review kubectl get pods
+# kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# kubectl get pods
+
 #-| Deploy Bookinfo
 # Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
-!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review! kubectl get pods
+# kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+# kubectl get pods
 
 #--| Step 2 - Bookinfo Reviews v2
 # At the moment, requests are going to different versions of the Reviews version. 
@@ -750,7 +756,8 @@ spec:
 EOF'
 
 kubectl apply -f /root/istio-1.0.0/ratingDelay.yaml
-# When you visit the product page, you should notice that the page loads significantly slower. This is because the service is blocking the entire page being loaded.
+# When you visit the product page (http://<master-ip>/productpage), you should notice that the page loads significantly slower.-
+# This is because the service is blocking the entire page being loaded.
 
 #--| Step 4 - Configure Timeout
 # Instead of the page blocking, the application should fail gracefully and display a message to the user.
@@ -789,7 +796,7 @@ kubectl apply -f /root/istio-1.0.0/virtualServiceReviews.yaml
 
 ####################################################################################################################
 # Handling Failures With Circuit Breakers
-# In this scenario, you will learn how to use Circuit Breakers within Envoy Proxy to cause applications 
+# In this scenario, you will learn how to use Circuit Breakers within Envoy Proxy to cause applications- 
 # to fail quick based on certain metrics within the system, such as active HTTP connections.
 
 # Circuit breaking is a critical component of distributed systems. 
