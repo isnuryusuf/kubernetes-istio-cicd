@@ -89,6 +89,8 @@ watch -n 2 kubectl get pods --all-namespaces -o wide
 kubectl get nodes
 # Now core-dns was running and Node in Status: Ready
 
+# Start your lab
+git clone https://github.com/isnuryusuf/kubernetes-istio-cicd
   
 ####################################################################################################################
 # Get Started with Istio and Kubernetes
@@ -158,9 +160,12 @@ kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookin
 # Deploy Gateway
 kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
 kubectl get pods
+# make sure all POD on namespace default was running: 
+# (details-v1, productpage-v1, ratings-v1, reviews-v1, reviews-v2, reviews-v3)
 
 #-| Apply default destination rules
-# Before you can use Istio to control the Bookinfo version routing, you need to define the available versions, called subsets, in destination rules.
+# Before you can use Istio to control the Bookinfo version routing, 
+# you need to define the available versions, called subsets, in destination rules.
 kubectl apply -f samples/bookinfo/networking/destination-rule-all-mtls.yaml
 
 #-| Expose bookinfo sample app component
@@ -169,16 +174,22 @@ wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/e
 # change <master-ip> to your master node IP address 
 kubectl apply -f /root/kubernetes-istio-cicd/expose.yaml
 
+####################################################################################################################
+
 #-| Control Routing
-# One of the main features of Istio is its traffic management. As a Microservice architectures scale, 
+# One of the main features of Istio is its traffic management. As a Microservice architectures scale, -
 # there is a requirement for more advanced service-to-service communication control.
 
-#-| User Based Testing / Request Routing
-# One aspect of traffic management is controlling traffic routing based on the HTTP request, such as user agent strings, IP address or cookies.
+#-| User Based Testing / Request Routing (login as user jason
+# One aspect of traffic management is controlling traffic routing based on the HTTP request, such as user agent strings, -
+# IP address or cookies.
 # The example below will send all traffic for the user "jason" to the reviews:v2, meaning they'll only see the black stars.
+# Form Data: "username=jason&passwd=jason"
 cat samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
 # Visit the product page http://<master-ip>/productpage and signin as a user jason (password jason)
+
+####################################################################################################################
 
 #-| Traffic Shaping for Canary Releases
 # The ability to split traffic for testing and rolling out changes is important. 
