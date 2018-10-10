@@ -931,7 +931,11 @@ kubectl exec -it $FORTIO_POD  -c istio-proxy  -- sh -c 'curl localhost:15000/sta
 # In this scenario you will learn how to use OpenTracing, Jaeger and Istio to identify slow Microservices.
 ####################################################################################################################
 
-#!/bin/bash
+#--| Preparation
+#--| Step 1 - Remove bookinfo from previous installation
+kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
 cd /root/
 launch.sh>&2
 if [[ ! -d "/root/istio-1.0.0" ]]; then
@@ -958,15 +962,7 @@ curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-fail-50.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-fail-50.yaml
 curl -s -L -o samples/bookinfo/networking/virtual-service-ratings-test-delay-everyone.yaml https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/virtual-service-ratings-test-delay-everyone.yaml
 
-kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yam
-
-#--| Step 1 - Remove bookinfo from previous installation
-!need review! kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review kubectl get pods
-#-| Deploy Bookinfo
-# Istio is already running on the Kubernetes cluster. Deploy the sample Bookinfo application before continuing.
-!need review! kubectl apply -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
-!need review! kubectl get pods
+kubectl apply -f samples/bookinfo/networking/virtual-service-reviews-v2.yaml
 
 #--| Step 2 - View Tracing
 # When you visit the Product Page you will only see the reviews coming from our the different deployed services.
@@ -997,9 +993,9 @@ kubectl apply -f samples/bookinfo/networking/virtual-service-ratings-test-delay-
 # you should see two distinct patterns.
 
 # What happens after 7s?
-#o The rating returns a response
-#o The user is annoyed at the slow response time
-#o A poor user experience is created
+# o The rating returns a response
+# o The user is annoyed at the slow response time
+# o A poor user experience is created
 
 #--| Step 5 - Simulate Failure
 # As with adding delays, application failures can be introduced by deploying the following Virtual Service.
@@ -1103,7 +1099,12 @@ kubectl get virtualservice ratings -o yaml
 # In this scenario, you will learn how you can use Weave Scope to identify the- 
 # dependencies and application connections within your deployment.
 ####################################################################################################################
-#!/bin/bash
+
+#--| Preparation
+#--| Step 1 - Remove bookinfo from previous installation
+kubectl delete -f <(istioctl kube-inject -f samples/bookinfo/platform/kube/bookinfo.yaml)
+kubectl get pods
+
 cd /root/
 launch.sh>&2
 if [[ ! -d "/root/istio-1.0.0" ]]; then
@@ -1131,7 +1132,7 @@ kubectl get pods -n weave
 # Make Scope Accessible
 # Once deployed, expose the service to the public.
 pod=$(kubectl get pod -n weave --selector=name=weave-scope-app -o jsonpath={.items..metadata.name})
-kubectl expose pod $pod -n weave --external-ip="172.17.0.33" --port=4040 --target-port=4040
+kubectl expose pod $pod -n weave --external-ip="<master-ip>" --port=4040 --target-port=4040
 # Important: Scope is a powerful tool and should only be exposed to trusted individuals and not the outside public. 
 # Ensure correct firewalls and VPNs are configured.
 # View Scope on port 4040 at http://<master-ip>:4040/
@@ -1140,9 +1141,9 @@ kubectl expose pod $pod -n weave --external-ip="172.17.0.33" --port=4040 --targe
 # Scope will display the deployments on Kubernetes, together with the connections and data flows between them.
 # As the Scope data is based on live system traffic, as data flows change, the dependencies and connections will update to match. When the system scales or changes, Scope will redraw to update the changes.
 # Scope has a number of interesting features:
-#* You can hide system components, such as Istio, by changing the namespaces that are viewable.
-#* By clicking each node, you can see what is running within the Pod, identifying memory or CPU consumption.
-#* Scope also has the ability to view the live logs and attach to a running container directly within the application.
+# * You can hide system components, such as Istio, by changing the namespaces that are viewable.
+# * By clicking each node, you can see what is running within the Pod, identifying memory or CPU consumption.
+# * Scope also has the ability to view the live logs and attach to a running container directly within the application.
 
 #-| Step 4 - Deploy V3
 # As this is a live system, change the application to use V2/V3 of the Bookinfo deployment.
