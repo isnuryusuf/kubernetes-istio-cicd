@@ -83,6 +83,14 @@ kubectl create -f jenkins-service.yaml
 
 kubectl get pod ; kubectl get svc
 
+#######################################################
+wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/cicd-jenkins.yml
+wget https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/cicd-service-account.yml
+kubectl apply -f https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/cicd-jenkins.yml
+kubectl create -f https://raw.githubusercontent.com/isnuryusuf/kubernetes-istio-cicd/master/cicd-service-account.yml
+
+kubectl cluster-info | grep master
+cat /root/.kube/config | grep  certificate-authority-data
 
 
 
